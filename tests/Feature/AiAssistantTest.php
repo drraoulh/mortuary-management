@@ -88,11 +88,29 @@ class AiAssistantTest extends TestCase
         $response = $this->actingAs($user)->post(route('ai.generate'), [
             'deceased_id' => $deceased->id,
             'feature' => 'condolences',
-            'language' => 'fr',
+            'language' => 'en',
         ]);
 
         $response->assertOk()
             ->assertSee('Marie Ngo')
-            ->assertSee('Générateur local');
+            ->assertSee('EN')
+            ->assertSee('Dear family');
+    }
+
+    public function test_language_is_required_for_ai_generation(): void
+    {
+        $user = User::factory()->create(['role' => 'staff']);
+        $deceased = Deceased::create([
+            'user_id' => $user->id,
+            'full_name' => 'Test Person',
+            'gender' => 'male',
+            'date_of_death' => now()->toDateString(),
+            'admission_date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($user)->post(route('ai.generate'), [
+            'deceased_id' => $deceased->id,
+            'feature' => 'summary',
+        ])->assertSessionHasErrors('language');
     }
 }

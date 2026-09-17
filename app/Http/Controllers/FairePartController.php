@@ -21,7 +21,7 @@ class FairePartController extends Controller
     {
         $request->validate([
             'deceased_id' => ['required', 'integer', 'exists:deceaseds,id'],
-            'language' => ['nullable', 'in:fr,en'],
+            'language' => ['required', 'in:fr,en'],
             'photo' => [
                 'nullable',
                 'image',
@@ -32,20 +32,20 @@ class FairePartController extends Controller
         ]);
 
         $deceased = Deceased::findOrFail($request->deceased_id);
-        $language = $request->input('language', 'fr');
+        $language = $ai->normalizeLanguage($request->input('language', 'fr'));
+        $photo = $request->file('photo');
 
-        $result = $ai->generateFairePart($deceased, $language);
+        $result = $ai->generateFairePart($deceased, $language, $photo);
         $fairePart = $result['text'];
         $provider = $result['provider'];
 
         $photoUrl = null;
-        if ($request->hasFile('photo')) {
-            $path = $request->file('photo')->store('faire-part', 'public');
+        if ($photo) {
+            $path = $photo->store('faire-part', 'public');
             $photoUrl = Storage::disk('public')->url($path);
-
-            if (!$deceased->photo) {
-                $deceased->update(['photo' => $path]);
-            }
+            $deceased->update(['photo' => $path]);
+        } elseif ($deceased->photo) {
+            $photoUrl = Storage::disk('public')->url($deceased->photo);
         }
 
         if ($request->boolean('save_notice')) {

@@ -1,439 +1,243 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
- 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mortuary System – @yield('title', 'Dashboard')</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Mortuary System')</title>
 
-    {{-- Google Fonts --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    {{-- Bootstrap 5 --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    {{-- Bootstrap Icons --}}
+    <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 
     <style>
-        /* ── Root tokens ───────────────────────────────────────────── */
         :root {
-            --bg-dark:       #0d1117;
-            --bg-card:       rgba(255,255,255,0.07);
-            --bg-card-hover: rgba(255,255,255,0.11);
-            --border:        rgba(255,255,255,0.10);
-            --text-primary:  #e6edf3;
-            --text-muted:    #8b949e;
-            --accent-blue:   #2563eb;
-            --accent-green:  #16a34a;
-            --accent-gold:   #b45309;
-            --accent-red:    #b91c1c;
-            --nav-height:    64px;
+            --ink: #14213d;
+            --muted: #5c6b7a;
+            --paper: #f4f7fb;
+            --panel: #ffffff;
+            --line: #d7e0ea;
+            --accent: #0f6a5a;
+            --accent-2: #1d4f91;
+            --danger: #9b2226;
+            --shadow: 0 12px 30px rgba(20, 33, 61, 0.08);
         }
 
-        /* ── Base ──────────────────────────────────────────────────── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        * { box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
+            margin: 0;
             min-height: 100vh;
+            font-family: 'Manrope', sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top right, rgba(15, 106, 90, 0.12), transparent 28%),
+                linear-gradient(160deg, #eef3f8 0%, #f7fafc 45%, #e8eef5 100%);
         }
 
-        /* ── Top-nav ───────────────────────────────────────────────── */
-        .top-nav {
+        .app-nav {
             position: sticky;
             top: 0;
             z-index: 1000;
-            height: var(--nav-height);
-            background: rgba(13,17,23,0.90);
-            backdrop-filter: blur(12px);
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            padding: 0 2rem;
-            gap: 2rem;
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.92);
+            border-bottom: 1px solid var(--line);
         }
 
-        .nav-brand {
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
+        .app-nav .navbar-brand {
+            font-family: 'Source Serif 4', serif;
             font-weight: 700;
-            font-size: 1.05rem;
-            color: var(--text-primary);
-            text-decoration: none;
-            white-space: nowrap;
-        }
-        .nav-brand i { font-size: 1.25rem; opacity: .85; }
-
-        .nav-links {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            list-style: none;
-            flex: 1;
-        }
-        .nav-links a {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            padding: 0.45rem 0.9rem;
-            border-radius: 6px;
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: color .15s, background .15s;
-        }
-        .nav-links a:hover,
-        .nav-links a.active {
-            color: var(--text-primary);
-            background: rgba(255,255,255,0.08);
-        }
-        .nav-links a.active {
-            border-bottom: 2px solid var(--accent-blue);
-            border-radius: 6px 6px 0 0;
+            color: var(--ink);
+            letter-spacing: 0.02em;
         }
 
-        .nav-user {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            cursor: pointer;
-            padding: 0.4rem 0.8rem;
-            border-radius: 8px;
-            transition: background .15s;
-        }
-        .nav-user:hover { background: rgba(255,255,255,0.06); }
-        .nav-avatar {
-            width: 32px; height: 32px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.15);
-            display: flex; align-items: center; justify-content: center;
-            font-size: .85rem;
-        }
-
-        /* ── Page hero / header ────────────────────────────────────── */
-        .page-hero {
-            position: relative;
-            background:
-                linear-gradient(to bottom, rgba(13,17,23,0.55) 0%, rgba(13,17,23,0.92) 100%),
-                url('{{ asset("images/hero-bg.jpg") }}') center/cover no-repeat;
-            padding: 3rem 2rem 2.5rem;
-            min-height: 180px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-        }
-        .page-hero h1 {
-            font-size: 2.4rem;
-            font-weight: 700;
-            line-height: 1.15;
-            margin-bottom: .35rem;
-        }
-        .page-hero p { color: var(--text-muted); font-size: .9rem; }
-
-        /* ── Main container ────────────────────────────────────────── */
-        .main-container { padding: 2rem; }
-
-        /* ── Glass card ────────────────────────────────────────────── */
-        .glass-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            backdrop-filter: blur(8px);
-            transition: background .2s;
-        }
-        .glass-card:hover { background: var(--bg-card-hover); }
-
-        /* ── Stat cards ────────────────────────────────────────────── */
-        .stat-card {
-            border-radius: 12px;
-            padding: 1.4rem 1.5rem;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            min-height: 150px;
-        }
-        .stat-card .stat-icon {
-            width: 52px; height: 52px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.20);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem;
-            margin-bottom: .75rem;
-        }
-        .stat-card .stat-label { font-size: .82rem; opacity: .85; margin-bottom: .2rem; }
-        .stat-card .stat-value { font-size: 2.1rem; font-weight: 700; line-height: 1; }
-        .stat-card .stat-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 1rem;
-            font-size: .8rem;
-            opacity: .75;
-            border-top: 1px solid rgba(255,255,255,.2);
-            padding-top: .75rem;
-        }
-        .stat-card .stat-footer a { color: inherit; text-decoration: none; }
-
-        .stat-blue   { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); }
-        .stat-green  { background: linear-gradient(135deg, #14532d 0%, #16a34a 100%); }
-        .stat-gold   { background: linear-gradient(135deg, #78350f 0%, #d97706 100%); }
-        .stat-red    { background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%); }
-
-        /* ── Section cards ─────────────────────────────────────────── */
-        .section-card { padding: 1.4rem 1.5rem; }
-        .section-title {
-            font-size: .95rem;
+        .app-nav .nav-link {
+            color: var(--muted);
             font-weight: 600;
-            margin-bottom: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: .5rem;
-        }
-        .section-title i { font-size: 1rem; }
-
-        /* ── System overview list ───────────────────────────────────── */
-        .overview-item {
-            display: flex;
-            align-items: center;
-            gap: .75rem;
-            padding: .6rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .overview-item:last-child { border-bottom: none; }
-        .overview-item .oi-icon {
-            width: 32px; height: 32px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.08);
-            display: flex; align-items: center; justify-content: center;
-            font-size: .9rem;
-            flex-shrink: 0;
-        }
-        .overview-item .oi-label { flex: 1; font-size: .875rem; }
-        .overview-item .oi-value { font-weight: 700; font-size: .95rem; }
-
-        /* ── Activity feed ──────────────────────────────────────────── */
-        .activity-item {
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: .6rem 0;
-            border-bottom: 1px solid var(--border);
-        }
-        .activity-item:last-child { border-bottom: none; }
-        .activity-dot {
-            width: 10px; height: 10px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .dot-green  { background: #22c55e; }
-        .dot-blue   { background: #3b82f6; }
-        .dot-yellow { background: #eab308; }
-        .dot-red    { background: #ef4444; }
-        .dot-purple { background: #a855f7; }
-
-        .activity-item .ai-text { flex: 1; font-size: .875rem; }
-        .activity-item .ai-time { font-size: .78rem; color: var(--text-muted); white-space: nowrap; }
-
-        .view-all-link {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 1rem;
-            padding-top: .85rem;
-            border-top: 1px solid var(--border);
-            color: var(--text-muted);
-            text-decoration: none;
-            font-size: .85rem;
-            transition: color .15s;
-        }
-        .view-all-link:hover { color: var(--text-primary); }
-
-        /* ── Quick actions ──────────────────────────────────────────── */
-        .quick-action-item {
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-            padding: .7rem .9rem;
-            border-radius: 8px;
-            text-decoration: none;
-            color: var(--text-primary);
-            transition: background .15s;
-            border-bottom: 1px solid var(--border);
-        }
-        .quick-action-item:last-child { border-bottom: none; }
-        .quick-action-item:hover { background: rgba(255,255,255,0.06); color: var(--text-primary); }
-        .qa-icon {
-            width: 34px; height: 34px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.08);
-            display: flex; align-items: center; justify-content: center;
-            font-size: .95rem;
-            flex-shrink: 0;
-        }
-        .qa-label { flex: 1; font-size: .875rem; font-weight: 500; }
-
-        /* ── Footer ─────────────────────────────────────────────────── */
-        .site-footer {
-            text-align: center;
-            padding: 1.5rem;
-            color: var(--text-muted);
-            font-size: .78rem;
-            border-top: 1px solid var(--border);
-            margin-top: 2rem;
+            border-radius: 999px;
+            padding: 0.45rem 0.9rem !important;
         }
 
-        /* ── Responsive ─────────────────────────────────────────────── */
+        .app-nav .nav-link:hover,
+        .app-nav .nav-link.active {
+            color: var(--accent);
+            background: rgba(15, 106, 90, 0.08);
+        }
+
+        .page-shell {
+            width: min(1120px, calc(100% - 2rem));
+            margin: 1.5rem auto 3rem;
+        }
+
+        .page-hero {
+            margin-bottom: 1.25rem;
+        }
+
+        .page-hero h1,
+        .page-title {
+            font-family: 'Source Serif 4', serif;
+            font-weight: 700;
+            margin: 0 0 0.35rem;
+            color: var(--ink);
+        }
+
+        .page-hero p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .surface-card {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            padding: 1.25rem 1.35rem;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+        }
+
+        .stat-card .label {
+            color: var(--muted);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .stat-card .value {
+            font-family: 'Source Serif 4', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-top: 0.35rem;
+        }
+
+        .btn-accent {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .btn-accent:hover {
+            background: #0c574a;
+            border-color: #0c574a;
+            color: #fff;
+        }
+
+        .btn-soft {
+            background: rgba(29, 79, 145, 0.08);
+            border: 1px solid rgba(29, 79, 145, 0.18);
+            color: var(--accent-2);
+            font-weight: 600;
+        }
+
+        .table thead th {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--muted);
+            border-bottom-color: var(--line);
+        }
+
+        .photo-preview {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            display: none;
+        }
+
+        .lang-toggle .btn {
+            min-width: 72px;
+            font-weight: 700;
+        }
+
         @media (max-width: 768px) {
-            .nav-links { display: none; }
-            .page-hero h1 { font-size: 1.6rem; }
-            .main-container { padding: 1rem; }
+            .stat-grid { grid-template-columns: 1fr; }
+            .page-shell { width: calc(100% - 1rem); margin-top: 1rem; }
         }
-        
-body{
-    background: linear-gradient(
-        135deg,
-        #0f172a,
-        #1e293b,
-        #334155
-    );
-    min-height:100vh;
-}
 
-.card{
-    border-radius:15px;
-}
-
+        @media print {
+            .app-nav, .no-print, footer { display: none !important; }
+            body { background: #fff; }
+            .page-shell { width: 100%; margin: 0; }
+            .surface-card { box-shadow: none; border: none; }
+        }
     </style>
-
     @stack('styles')
 </head>
 <body>
+<nav class="navbar navbar-expand-lg app-nav">
+    <div class="container-fluid px-3 px-lg-4">
+        <a class="navbar-brand" href="{{ route('dashboard') }}">
+            Mortuary System
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-{{-- ─── TOP NAV ─────────────────────────────────────────────────────── --}}
-<nav class="top-nav">
-    <a href="{{ route('admin.dashboard') }}" class="nav-brand">
-        <i class="bi bi-bank"></i>
-        Mortuary System
-    </a>
+        <div class="collapse navbar-collapse" id="mainNav">
+            @auth
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 gap-lg-1">
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('deceased.*') ? 'active' : '' }}" href="{{ route('deceased.index') }}">Deceased</a></li>
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('storage.*') ? 'active' : '' }}" href="{{ route('storage.index') }}">Storage</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {{ request()->routeIs('payments.*') ? 'active' : '' }}" href="#" data-bs-toggle="dropdown">Payments</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ route('payments.index') }}">My payments</a></li>
+                            <li><a class="dropdown-item" href="{{ route('payments.create') }}">Make payment</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('schedule.*') ? 'active' : '' }}" href="{{ route('schedule.index') }}">Schedule</a></li>
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('ai.*') || request()->routeIs('faire-part.*') ? 'active' : '' }}" href="{{ route('ai.index') }}">AI</a></li>
+                    <li class="nav-item"><a class="nav-link {{ request()->routeIs('geolocation.*') ? 'active' : '' }}" href="{{ route('geolocation.index') }}">Geo</a></li>
+                    @if(auth()->user()->role === 'admin')
+                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.*') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}">Admin</a></li>
+                    @endif
+                </ul>
 
-    <ul class="nav-links">
-        <li>
-    <a href="{{ route('admin.dashboard') }}">
-        Dashboard
-    </a>
-</li>
-
-<li>
-    <a href="{{ route('deceased.index') }}">
-        Deceased
-    </a>
-</li>
-
-@if(auth()->user()->role == 'admin')
-
-<li>
-<a href="{{ route('storage.index') }}">
-Storage Rooms
-</a>
-</li>
-
-@endif
-
-<div class="col-md-4 mb-3">
-    <div class="card shadow text-center">
-        <div class="card-body">
-            <h5>Add Payment</h5>
-
-           <li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle"
-       href="#"
-       id="paymentsDropdown"
-       role="button"
-       data-bs-toggle="dropdown"
-       aria-expanded="false">
-        Payments
-    </a>
-
-    <ul class="dropdown-menu" aria-labelledby="paymentsDropdown">
-
-        <li>
-            <a class="dropdown-item"
-               href="{{ route('payments.index') }}">
-                My Payments
-            </a>
-        </li>
-
-        <li>
-            <a class="dropdown-item"
-               href="{{ route('payments.create') }}">
-                Make Payment
-            </a>
-        </li>
-
-    </ul>
-</li>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small d-none d-md-inline">{{ auth()->user()->name }}</span>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Logout</button>
+                    </form>
+                </div>
+            @endauth
         </div>
-    </div>
-</div>
-
-<div class="col-md-4 mb-3">
-    <div class="card shadow text-center">
-        <div class="card-body">
-            <h5>Add Schedule</h5>
-
-            <a href="{{ route('schedule.create') }}"
-               class="btn btn-primary">
-                Add Schedule
-            </a>
-        </div>
-    </div>
-</div>
-
-    </ul>
-
-    <div class="nav-user dropdown">
-        <div class="nav-user" data-bs-toggle="dropdown" aria-expanded="false">
-            <div class="nav-avatar"><i class="bi bi-person-fill"></i></div>
-            <span style="font-size:.875rem;font-weight:500;">
-                {{ auth()->user()->name ?? 'Admin' }}
-            </span>
-            <i class="bi bi-chevron-down" style="font-size:.7rem;opacity:.6;"></i>
-        </div>
-        <ul class="dropdown-menu dropdown-menu-end"
-            style="background:#1c2333;border:1px solid var(--border);min-width:160px;">
-            
-            <li><hr class="dropdown-divider border-secondary"></li>
-            <li>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="dropdown-item text-danger">
-                        <i class="bi bi-box-arrow-right me-2"></i> Logout
-                    </button>
-                </form>
-            </li>
-        </ul>
     </div>
 </nav>
 
-{{-- ─── PAGE CONTENT ────────────────────────────────────────────────── --}}
-@yield('content')
+<main class="page-shell">
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger border-0 shadow-sm">{{ session('error') }}</div>
+    @endif
 
-{{-- ─── FOOTER ──────────────────────────────────────────────────────── --}}
-<footer class="site-footer">
-    &copy; {{ date('Y') }} Mortuary System. All rights reserved.
+    @yield('content')
+</main>
+
+<footer class="text-center text-muted pb-4 small no-print">
+    &copy; {{ date('Y') }} Mortuary System
 </footer>
 
-{{-- Scripts --}}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 @stack('scripts')
 </body>
 </html>

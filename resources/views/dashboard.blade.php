@@ -1,269 +1,58 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
+@section('title', 'Dashboard')
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Mortuary Dashboard</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-</head>
-
-<body>
-
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-
-    <div class="container">
-
-        <a class="navbar-brand" href="{{ route('dashboard') }}">
-            Mortuary System
-        </a>
-
-        <button
-            class="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#navbarNav"
-        >
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navbarNav">
-
-            <ul class="navbar-nav me-auto">
-
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        href="{{ route('dashboard') }}"
-                    >
-                        Dashboard
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        href="{{ route('deceased.index') }}"
-                    >
-                        Deceased
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        href="{{ route('storage.index') }}"
-                    >
-                        Storage Rooms
-                    </a>
-                </li>
-
-                {{-- PAYMENTS DROPDOWN --}}
-                <li class="nav-item dropdown">
-
-                    <a
-                        class="nav-link dropdown-toggle"
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                    >
-                        Payments
-                    </a>
-
-                    <ul class="dropdown-menu">
-
-                        <li>
-                            <a
-                                class="dropdown-item"
-                                href="{{ route('payments.index') }}"
-                            >
-                                My Payments
-                            </a>
-                        </li>
-
-                        <li>
-                            <a
-                                class="dropdown-item"
-                                href="{{ route('payments.create') }}"
-                            >
-                                Make Payment
-                            </a>
-                        </li>
-
-                    </ul>
-
-                </li>
-
-                <li class="nav-item">
-                    <a
-                        class="nav-link"
-                        href="{{ route('schedule.index') }}"
-                    >
-                        Schedule
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('ai.index') }}">
-                        IA
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('geolocation.index') }}">
-                        Géo
-                    </a>
-                </li>
-
-            </ul>
-
-            {{-- USER / LOGOUT --}}
-
-            <ul class="navbar-nav">
-
-                <li class="nav-item dropdown">
-
-                    <a
-                        class="nav-link dropdown-toggle"
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown"
-                    >
-                        {{ auth()->user()->name }}
-                    </a>
-
-                    <ul class="dropdown-menu dropdown-menu-end">
-
-                        <li>
-
-                            <form
-                                method="POST"
-                                action="{{ route('logout') }}"
-                            >
-
-                                @csrf
-
-                                <button
-                                    type="submit"
-                                    class="dropdown-item"
-                                >
-                                    Logout
-                                </button>
-
-                            </form>
-
-                        </li>
-
-                    </ul>
-
-                </li>
-
-            </ul>
-
-        </div>
-
-    </div>
-
-</nav>
-
-
-{{-- DASHBOARD --}}
-
-<div class="container mt-5">
-
-    <h1 class="mb-4">
-        Mortuary Dashboard
-    </h1>
-
-
-    {{-- THREE SUMMARY CARDS --}}
-
-    <div class="row g-4">
-
-        {{-- TOTAL DECEASED --}}
-
-        <div class="col-md-4">
-
-            <div class="card bg-primary text-white shadow">
-
-                <div class="card-body">
-
-                    <h5>
-                        Total Deceased
-                    </h5>
-
-                    <h2>
-                        {{ $totalDeceased }}
-                    </h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        {{-- AVAILABLE ROOMS --}}
-
-        <div class="col-md-4">
-
-            <div class="card bg-warning text-dark shadow">
-
-                <div class="card-body">
-
-                    <h5>
-                        Available Rooms
-                    </h5>
-
-                    <h2>
-                        {{ $availableRooms }}
-                    </h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-
-        {{-- PENDING PAYMENTS --}}
-
-        <div class="col-md-4">
-
-            <div class="card bg-danger text-white shadow">
-
-                <div class="card-body">
-
-                    <h5>
-                        Pending Payments
-                    </h5>
-
-                    <h2>
-                        {{ $pendingPayments }}
-                    </h2>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
+@section('content')
+<div class="page-hero">
+    <h1>Dashboard</h1>
+    <p>Welcome back, {{ auth()->user()->name }}. Manage cases, payments and AI tools.</p>
 </div>
 
+<div class="stat-grid mb-4">
+    <div class="stat-card">
+        <div class="label">Deceased</div>
+        <div class="value">{{ $totalDeceased }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Available rooms</div>
+        <div class="value">{{ $availableRooms }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Pending payments</div>
+        <div class="value">{{ $pendingPayments }}</div>
+    </div>
+</div>
 
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-</script>
-
-</body>
-
-</html>
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="surface-card p-4 h-100">
+            <h5 class="fw-bold">Cases</h5>
+            <p class="text-muted">Register deceased and open AI faire-part tools.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ route('deceased.create') }}" class="btn btn-accent btn-sm">Register</a>
+                <a href="{{ route('deceased.index') }}" class="btn btn-soft btn-sm">View all</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="surface-card p-4 h-100">
+            <h5 class="fw-bold">Payments</h5>
+            <p class="text-muted">CamPay mobile money collection and receipts.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ route('payments.create') }}" class="btn btn-accent btn-sm">Pay</a>
+                <a href="{{ route('payments.index') }}" class="btn btn-soft btn-sm">History</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="surface-card p-4 h-100">
+            <h5 class="fw-bold">AI</h5>
+            <p class="text-muted">FR/EN faire-part, condolences, SMS and summaries.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ route('ai.index') }}" class="btn btn-accent btn-sm">Open AI</a>
+                <a href="{{ route('geolocation.index') }}" class="btn btn-soft btn-sm">Geo</a>
+            </div>
+        </div>
+    </div>
+</div>
+@endsection

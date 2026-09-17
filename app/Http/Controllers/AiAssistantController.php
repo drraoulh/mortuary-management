@@ -6,6 +6,7 @@ use App\Models\Deceased;
 use App\Models\FuneralNotice;
 use App\Services\MortuaryAiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AiAssistantController extends Controller
 {
@@ -23,20 +24,23 @@ class AiAssistantController extends Controller
         $request->validate([
             'deceased_id' => ['required', 'integer', 'exists:deceaseds,id'],
             'feature' => ['required', 'in:faire_part,condolences,sms,summary'],
-            'language' => ['nullable', 'in:fr,en'],
+            'language' => ['required', 'in:fr,en'],
             'tone' => ['nullable', 'in:formal,warm'],
             'sms_purpose' => ['nullable', 'in:pickup,payment,schedule'],
             'save_notice' => ['nullable', 'boolean'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $deceased = Deceased::findOrFail($request->deceased_id);
-        $language = $request->input('language', 'fr');
+        $language = $ai->normalizeLanguage($request->input('language', 'fr'));
+        $photo = $request->file('photo');
 
         $result = match ($request->feature) {
             'condolences' => $ai->generateCondolences(
                 $deceased,
                 $language,
-                $request->input('tone', 'formal')
+                $request->input('tone', 'formal'),
+                $photo
             ),
             'sms' => $ai->generateFamilySms(
                 $deceased,
@@ -44,8 +48,20 @@ class AiAssistantController extends Controller
                 $language
             ),
             'summary' => $ai->generateCaseSummary($deceased, $language),
-            default => $ai->generateFairePart($deceased, $language),
+            default => $ai->generateFairePart($deceased, $language, $photo),
         };
+
+        $photoUrl = null;
+        if ($photo) {
+            $path = $photo->store('ai-media', 'public');
+            $photoUrl = Storage::disk('public')->url($path);
+
+            if (!$deceased->photo) {
+                $deceased->update(['photo' => $path]);
+            }
+        } elseif ($deceased->photo) {
+            $photoUrl = Storage::disk('public')->url($deceased->photo);
+        }
 
         if ($request->boolean('save_notice') && in_array($request->feature, ['faire_part', 'condolences'], true)) {
             FuneralNotice::create([
@@ -70,6 +86,7 @@ class AiAssistantController extends Controller
             'text' => $result['text'],
             'provider' => $result['provider'],
             'language' => $language,
+            'photoUrl' => $photoUrl,
         ]);
     }
 }

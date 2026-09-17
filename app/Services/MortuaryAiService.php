@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Deceased;
+use Illuminate\Http\UploadedFile;
 use Throwable;
 
 class MortuaryAiService
@@ -13,46 +14,59 @@ class MortuaryAiService
     }
 
     /**
-     * @return array{text:string,provider:string}
+     * @return array{text:string,provider:string,language:string}
      */
-    public function generateFairePart(Deceased $deceased, string $language = 'fr'): array
-    {
+    public function generateFairePart(
+        Deceased $deceased,
+        string $language = 'fr',
+        ?UploadedFile $image = null
+    ): array {
+        $language = $this->normalizeLanguage($language);
         $prompt = $this->fairePartPrompt($deceased, $language);
 
         return $this->generate(
-            system: $language === 'en'
-                ? 'You write dignified funeral announcements. Never invent facts.'
-                : 'Tu rédiges des faire-part funéraires dignes et formels. N’invente jamais de faits.',
+            language: $language,
+            system: $this->systemPrompt($language, 'faire_part'),
             user: $prompt,
-            fallback: fn () => $this->fallbackFairePart($deceased, $language)
+            fallback: fn () => $this->fallbackFairePart($deceased, $language),
+            image: $image
         );
     }
 
     /**
-     * @return array{text:string,provider:string}
+     * @return array{text:string,provider:string,language:string}
      */
-    public function generateCondolences(Deceased $deceased, string $language = 'fr', string $tone = 'formal'): array
-    {
-        $info = $this->deceasedFacts($deceased);
+    public function generateCondolences(
+        Deceased $deceased,
+        string $language = 'fr',
+        string $tone = 'formal',
+        ?UploadedFile $image = null
+    ): array {
+        $language = $this->normalizeLanguage($language);
+        $info = $this->deceasedFacts($deceased, $language);
         $prompt = $language === 'en'
             ? "Write a short {$tone} condolence message for the family of:\n{$info}\nDo not invent details. 80-120 words. No markdown."
             : "Rédige un court message de condoléances ({$tone}) pour la famille de:\n{$info}\nN’invente aucun détail. 80-120 mots. Pas de markdown.";
 
         return $this->generate(
-            system: $language === 'en'
-                ? 'You write compassionate condolence messages.'
-                : 'Tu rédiges des messages de condoléances compatissants.',
+            language: $language,
+            system: $this->systemPrompt($language, 'condolences'),
             user: $prompt,
-            fallback: fn () => $this->fallbackCondolences($deceased, $language)
+            fallback: fn () => $this->fallbackCondolences($deceased, $language),
+            image: $image
         );
     }
 
     /**
-     * @return array{text:string,provider:string}
+     * @return array{text:string,provider:string,language:string}
      */
-    public function generateFamilySms(Deceased $deceased, string $purpose = 'pickup', string $language = 'fr'): array
-    {
-        $info = $this->deceasedFacts($deceased);
+    public function generateFamilySms(
+        Deceased $deceased,
+        string $purpose = 'pickup',
+        string $language = 'fr'
+    ): array {
+        $language = $this->normalizeLanguage($language);
+        $info = $this->deceasedFacts($deceased, $language);
         $purposeLabel = match ($purpose) {
             'payment' => $language === 'en' ? 'payment reminder' : 'rappel de paiement',
             'schedule' => $language === 'en' ? 'ceremony schedule update' : 'mise à jour du planning des cérémonies',
@@ -64,9 +78,8 @@ class MortuaryAiService
             : "Rédige un SMS concis ({$purposeLabel}) concernant:\n{$info}\nMaximum 240 caractères. Pas de markdown. N’invente aucun fait.";
 
         return $this->generate(
-            system: $language === 'en'
-                ? 'You write short professional mortuary SMS messages.'
-                : 'Tu rédiges des SMS professionnels courts pour une morgue.',
+            language: $language,
+            system: $this->systemPrompt($language, 'sms'),
             user: $prompt,
             fallback: fn () => $this->fallbackSms($deceased, $purpose, $language),
             maxTokens: 180
@@ -74,44 +87,73 @@ class MortuaryAiService
     }
 
     /**
-     * @return array{text:string,provider:string}
+     * @return array{text:string,provider:string,language:string}
      */
     public function generateCaseSummary(Deceased $deceased, string $language = 'fr'): array
     {
-        $info = $this->deceasedFacts($deceased);
+        $language = $this->normalizeLanguage($language);
+        $info = $this->deceasedFacts($deceased, $language);
         $prompt = $language === 'en'
-            ? "Summarize this mortuary case for staff in 5 short bullet-like lines (plain text):\n{$info}\nDo not invent missing data."
+            ? "Summarize this mortuary case for staff in 5 short plain-text lines:\n{$info}\nDo not invent missing data."
             : "Résume ce dossier mortuaire pour le personnel en 5 lignes courtes (texte simple):\n{$info}\nN’invente aucune donnée manquante.";
 
         return $this->generate(
-            system: $language === 'en'
-                ? 'You summarize mortuary records for staff.'
-                : 'Tu résumes des dossiers mortuaires pour le personnel.',
+            language: $language,
+            system: $this->systemPrompt($language, 'summary'),
             user: $prompt,
             fallback: fn () => $this->fallbackSummary($deceased, $language)
         );
     }
 
+    public function normalizeLanguage(?string $language): string
+    {
+        $language = strtolower(trim((string) $language));
+
+        return in_array($language, ['en', 'fr'], true) ? $language : 'fr';
+    }
+
+    protected function systemPrompt(string $language, string $feature): string
+    {
+        if ($language === 'en') {
+            return "You are a mortuary management writing assistant.\n"
+                . "CRITICAL: Reply ONLY in English. Never mix French into the answer.\n"
+                . "Never invent facts. Omit unknown details.\n"
+                . "No markdown, no preamble, no explanation about being an AI.\n"
+                . "Feature: {$feature}.";
+        }
+
+        return "Tu es un assistant de rédaction pour une morgue.\n"
+            . "CRITIQUE: Réponds UNIQUEMENT en français. N’utilise jamais l’anglais dans la réponse.\n"
+            . "N’invente jamais de faits. Omets les détails inconnus.\n"
+            . "Pas de markdown, pas d’introduction, ne dis pas que tu es une IA.\n"
+            . "Fonctionnalité: {$feature}.";
+    }
+
     /**
      * @param  callable():string  $fallback
-     * @return array{text:string,provider:string}
+     * @return array{text:string,provider:string,language:string}
      */
     protected function generate(
+        string $language,
         string $system,
         string $user,
         callable $fallback,
+        ?UploadedFile $image = null,
         int $maxTokens = 900
     ): array {
         if ($this->huggingface->isConfigured()) {
             try {
+                $userContent = $this->huggingface->buildUserContent($user, $image);
+
                 $text = $this->huggingface->chat([
                     ['role' => 'system', 'content' => $system],
-                    ['role' => 'user', 'content' => $user],
+                    ['role' => 'user', 'content' => $userContent],
                 ], $maxTokens);
 
                 return [
                     'text' => $text,
                     'provider' => 'huggingface',
+                    'language' => $language,
                 ];
             } catch (Throwable $e) {
                 report($e);
@@ -121,26 +163,40 @@ class MortuaryAiService
         return [
             'text' => $fallback(),
             'provider' => 'local',
+            'language' => $language,
         ];
     }
 
-    protected function deceasedFacts(Deceased $deceased): string
+    protected function deceasedFacts(Deceased $deceased, string $language = 'fr'): string
     {
-        $lines = [
-            'Full name: ' . $deceased->full_name,
-        ];
+        $labels = $language === 'en'
+            ? [
+                'full_name' => 'Full name',
+                'identifier' => 'Identifier',
+                'gender' => 'Gender',
+                'date_of_birth' => 'Date of birth',
+                'date_of_death' => 'Date of death',
+                'admission_date' => 'Admission date',
+                'cause_of_death' => 'Cause of death',
+                'room_name' => 'Room',
+                'room_type' => 'Room type',
+                'location_address' => 'Location',
+            ]
+            : [
+                'full_name' => 'Nom complet',
+                'identifier' => 'Identifiant',
+                'gender' => 'Genre',
+                'date_of_birth' => 'Date de naissance',
+                'date_of_death' => 'Date de décès',
+                'admission_date' => 'Date d’admission',
+                'cause_of_death' => 'Cause du décès',
+                'room_name' => 'Chambre',
+                'room_type' => 'Type de chambre',
+                'location_address' => 'Localisation',
+            ];
 
-        foreach ([
-            'identifier' => 'Identifier',
-            'gender' => 'Gender',
-            'date_of_birth' => 'Date of birth',
-            'date_of_death' => 'Date of death',
-            'admission_date' => 'Admission date',
-            'cause_of_death' => 'Cause of death',
-            'room_name' => 'Room',
-            'room_type' => 'Room type',
-            'location_address' => 'Location',
-        ] as $field => $label) {
+        $lines = [];
+        foreach ($labels as $field => $label) {
             $value = $deceased->{$field} ?? null;
             if (filled($value)) {
                 $lines[] = "{$label}: {$value}";
@@ -152,30 +208,32 @@ class MortuaryAiService
 
     protected function fairePartPrompt(Deceased $deceased, string $language): string
     {
-        $facts = $this->deceasedFacts($deceased);
+        $facts = $this->deceasedFacts($deceased, $language);
 
         if ($language === 'en') {
             return <<<PROMPT
-Create a respectful funeral announcement using ONLY these facts:
+Write the final funeral announcement in English using ONLY these facts:
 {$facts}
 
 Rules:
+- Output language: English only.
 - Never invent relatives, dates, religion, occupation, or burial details.
 - Omit missing information.
-- Formal compassionate English.
+- Formal compassionate tone.
 - No markdown.
 - Suitable for printing.
 PROMPT;
         }
 
         return <<<PROMPT
-Crée un faire-part funéraire respectueux en français avec UNIQUEMENT ces informations:
+Rédige le faire-part final en français avec UNIQUEMENT ces informations:
 {$facts}
 
 Règles:
+- Langue de sortie: français uniquement.
 - N’invente jamais de proches, dates, religion, métier ou informations d’inhumation.
 - Omets ce qui manque.
-- Français formel et compatissant.
+- Ton formel et compatissant.
 - Pas de markdown.
 - Adapté à l’impression.
 PROMPT;
