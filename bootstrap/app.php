@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'staff' => \App\Http\Middleware\StaffMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
+
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/campay',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

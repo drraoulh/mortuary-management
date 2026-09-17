@@ -6,12 +6,6 @@ return [
     |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
     */
 
     'postmark' => [
@@ -34,16 +28,34 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+
     'google' => [
-    'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
-],
-'gemini' => [
-    'api_key' => env('GEMINI_API_KEY'),
-],
+        'places_api_key' => env('GOOGLE_PLACES_API_KEY'),
+    ],
+
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+    ],
+
+    'huggingface' => [
+        'token' => env('HF_TOKEN'),
+        'model' => env('HF_MODEL', 'Qwen/Qwen2.5-7B-Instruct:fastest'),
+    ],
+
     'campay' => [
-        'base_url' => env('CAMPAY_BASE_URL', 'https://demo.campay.net'),
+        'use_demo' => filter_var(env('CAMPAY_USE_DEMO', true), FILTER_VALIDATE_BOOLEAN),
+        'base_url' => env(
+            'CAMPAY_BASE_URL',
+            filter_var(env('CAMPAY_USE_DEMO', true), FILTER_VALIDATE_BOOLEAN)
+                ? 'https://demo.campay.net'
+                : 'https://www.campay.net'
+        ),
+        'app_id' => env('CAMPAY_APP_ID'),
         'username' => env('CAMPAY_USERNAME'),
         'password' => env('CAMPAY_PASSWORD'),
-        'simulation' => env('CAMPAY_SIMULATION', true),
+        'token' => env('CAMPAY_TOKEN'),
+        'webhook_key' => env('CAMPAY_WEBHOOK_KEY'),
+        // Local fake payments only. Keep false when using real CamPay demo/live APIs.
+        'simulation' => filter_var(env('CAMPAY_SIMULATION', false), FILTER_VALIDATE_BOOLEAN),
     ],
 ];

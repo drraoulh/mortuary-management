@@ -22,18 +22,29 @@ class PaymentController extends Controller
         return view('payments.index', compact('payments'));
     }
 
-    public function create()
+    public function create(CamPayService $campay)
     {
-        $deceaseds = Deceased::all();
+        $deceaseds = Deceased::orderBy('full_name')->get();
 
-        return view('payments.create', compact('deceaseds'));
+        return view('payments.create', [
+            'deceaseds' => $deceaseds,
+            'isDemo' => $campay->isDemo(),
+            'maxAmount' => $campay->maxAmount(),
+        ]);
     }
 
     public function store(Request $request, CamPayService $campay)
     {
+        $maxAmount = $campay->maxAmount();
+
+        $amountRules = ['required', 'numeric', 'min:1'];
+        if ($maxAmount !== null) {
+            $amountRules[] = 'max:' . $maxAmount;
+        }
+
         $request->validate([
             'deceased_id' => 'required|exists:deceaseds,id',
-            'amount' => 'required|numeric|min:1',
+            'amount' => $amountRules,
             'balance' => 'nullable|numeric|min:0',
             'payment_date' => 'required|date',
             'payment_method' => 'required|in:mobile_money',
@@ -42,9 +53,13 @@ class PaymentController extends Controller
                 'required',
                 'regex:/^(?:237)?6[5-9][0-9]{7}$/',
             ],
+        ], [
+            'amount.max' => $maxAmount
+                ? "CamPay demo allows a maximum of {$maxAmount} XAF per payment."
+                : 'Amount is too high.',
         ]);
 
-        $phone = preg_replace('/\D/', '', $request->phone_number);
+        $phone = preg_replace('/\D/', '', (string) $request->phone_number);
 
         if (strlen($phone) === 9) {
             $phone = '237' . $phone;
@@ -80,29 +95,29 @@ class PaymentController extends Controller
 
             $payment->update([
                 'campay_reference' => $campayResponse['reference'] ?? null,
-                'campay_status' => $campayResponse['status'] ?? 'PENDING',
+                'campay_status' => strtoupper((string) ($campayResponse['status'] ?? 'PENDING')),
             ]);
 
             return redirect()
                 ->route('payments.processing', $payment->id)
-                ->with(
-                    'success',
-                    'Payment request sent. Please confirm the transaction on your phone.'
-                );
+                ->with('success', 'Payment request sent. Confirm on your phone.')
+                ->with('ussd_code', $campayResponse['ussd_code'] ?? null)
+                ->with('campay_operator', $campayResponse['operator'] ?? $request->mobile_operator);
         } catch (\Throwable $e) {
             Log::error('CamPay payment error', [
                 'payment_id' => $payment->id ?? null,
                 'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
+            ]);
+
+            $payment->update([
+                'status' => 'failed',
+                'campay_status' => 'FAILED',
             ]);
 
             return redirect()
-                ->route('payments.index')
-                ->with(
-                    'error',
-                    'CamPay payment failed: ' . $e->getMessage()
-                );
+                ->route('payments.create')
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
     }
 
@@ -167,8 +182,7 @@ class PaymentController extends Controller
 
         try {
             $result = $campay->status($payment->campay_reference);
-
-            $campayStatus = strtoupper(trim($result['status'] ?? 'PENDING'));
+            $campayStatus = strtoupper(trim((string) ($result['status'] ?? 'PENDING')));
 
             if ($campayStatus === 'SUCCESSFUL') {
                 $payment->update([
@@ -183,7 +197,7 @@ class PaymentController extends Controller
                 return response()->json([
                     'status' => 'SUCCESSFUL',
                     'message' => 'Payment successful.',
-                    'receipt_url' => route('payments.receipt', $payment->id),
+                    'receipt_url' => route('payments.show', $payment->id),
                 ]);
             }
 
@@ -207,6 +221,7 @@ class PaymentController extends Controller
             return response()->json([
                 'status' => 'PENDING',
                 'campay_status' => $campayStatus,
+                'ussd_code' => $result['ussd_code'] ?? null,
             ]);
         } catch (\Throwable $e) {
             Log::error('CamPay status check error', [
@@ -221,9 +236,81 @@ class PaymentController extends Controller
         }
     }
 
+    /**
+     * CamPay server-to-server webhook callback.
+     */
+    public function webhook(Request $request)
+    {
+        $configuredKey = (string) config('services.campay.webhook_key');
+        $providedKey = (string) (
+            $request->header('X-Campay-Webhook-Key')
+            ?? $request->input('webhook_key')
+            ?? $request->query('key')
+            ?? ''
+        );
+
+        if ($configuredKey !== '' && !hash_equals($configuredKey, $providedKey)) {
+            Log::warning('CamPay webhook rejected: invalid key');
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $reference = $request->input('reference')
+            ?? $request->input('external_reference');
+
+        if (!$reference) {
+            return response()->json(['message' => 'Missing reference'], 422);
+        }
+
+        $payment = Payment::where('campay_reference', $reference)
+            ->orWhere('receipt_number', $reference)
+            ->first();
+
+        if (!$payment) {
+            Log::warning('CamPay webhook: payment not found', [
+                'reference' => $reference,
+            ]);
+
+            return response()->json(['message' => 'Payment not found'], 404);
+        }
+
+        $status = strtoupper((string) (
+            $request->input('status')
+            ?? $request->input('transaction_status')
+            ?? 'PENDING'
+        ));
+
+        if ($status === 'SUCCESSFUL') {
+            $payment->update([
+                'status' => 'successful',
+                'confirmed' => true,
+                'confirmed_at' => now(),
+                'campay_status' => 'SUCCESSFUL',
+                'campay_operator_reference' =>
+                    $request->input('operator_reference')
+                    ?? $payment->campay_operator_reference,
+            ]);
+        } elseif ($status === 'FAILED') {
+            $payment->update([
+                'status' => 'failed',
+                'confirmed' => false,
+                'campay_status' => 'FAILED',
+            ]);
+        } else {
+            $payment->update([
+                'campay_status' => $status,
+            ]);
+        }
+
+        return response()->json(['message' => 'ok']);
+    }
+
     public function simulateSuccess(Payment $payment)
     {
         abort_unless($payment->user_id === auth()->id(), 403);
+
+        if (!config('services.campay.simulation') && !config('app.debug')) {
+            abort(403, 'Simulation is disabled.');
+        }
 
         if ($payment->status !== 'pending') {
             return back()->with('error', 'This payment is no longer pending.');
@@ -234,7 +321,8 @@ class PaymentController extends Controller
             'confirmed' => true,
             'confirmed_at' => now(),
             'campay_status' => 'SUCCESSFUL',
-            'campay_reference' => $payment->campay_reference ?: ('SIM-' . strtoupper(Str::random(8))),
+            'campay_reference' => $payment->campay_reference
+                ?: ('SIM-' . strtoupper(Str::random(8))),
         ]);
 
         return redirect()

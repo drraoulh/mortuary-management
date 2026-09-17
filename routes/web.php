@@ -98,4 +98,12 @@ Route::post('/schedule/{id}/confirm', [ScheduleController::class, 'confirm'])
     ->middleware('auth')
     ->name('schedule.confirm');
 
+/*
+|--------------------------------------------------------------------------
+| CamPay webhook (public)
+|--------------------------------------------------------------------------
+*/
+Route::post('/webhooks/campay', [PaymentController::class, 'webhook'])
+    ->name('webhooks.campay');
+
 require __DIR__.'/auth.php';

@@ -1,169 +1,127 @@
-<h2 style="text-align:center; color:darkblue;">Create New Payment</h2>
+@extends('layouts.app')
 
-<form action="{{ route('payments.store') }}" method="POST"
-      style="width:50%; margin:auto; padding:20px; border:1px solid #ccc; border-radius:10px; background:#f8f9fa;">
+@section('content')
+<div class="container mt-4 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7">
+            <h2 class="mb-3" style="color:#0b3d91;">Create Mobile Money Payment</h2>
 
-    @csrf
-    <div class="mb-3">
-    <label for="payment_method" class="form-label">
-        Payment Method
-    </label>
+            @if(session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
 
-   <div class="mb-3">
-    <label class="form-label">
-        Payment Method
-    </label>
+            @if($errors->any())
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
-    <select
-        name="payment_method"
-        id="payment_method"
-        class="form-select"
-        required
-    >
-        <option value="">Select payment method</option>
-        <option value="mobile_money">Mobile Money</option>
-    </select>
-</div>
-<div
-    class="mb-3"
-    id="mobile-money-section"
-    style="display: none;"
->
+            @if($isDemo)
+                <div class="alert alert-info">
+                    CamPay <strong>demo</strong> mode is active.
+                    Maximum amount is <strong>{{ number_format($maxAmount, 0) }} XAF</strong>.
+                    Use a real MTN/Orange test number and confirm the USSD prompt on the phone.
+                </div>
+            @endif
 
-    <label class="form-label">
-        Mobile Money Network
-    </label>
+            @if($deceaseds->isEmpty())
+                <div class="alert alert-warning">
+                    Register a deceased record before creating a payment.
+                    <a href="{{ route('deceased.create') }}">Add deceased</a>
+                </div>
+            @else
+                <form action="{{ route('payments.store') }}" method="POST" class="p-4 border rounded bg-light">
+                    @csrf
 
-    <select
-        name="mobile_operator"
-        id="mobile_operator"
-        class="form-select"
-    >
+                    <div class="mb-3">
+                        <label class="form-label">Deceased</label>
+                        <select name="deceased_id" class="form-select" required>
+                            @foreach($deceaseds as $deceased)
+                                <option value="{{ $deceased->id }}" @selected(old('deceased_id') == $deceased->id)>
+                                    {{ $deceased->full_name }}
+                                    @if($deceased->identifier) ({{ $deceased->identifier }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-        <option value="">
-            Select network
-        </option>
+                    <div class="mb-3">
+                        <label class="form-label">Amount (XAF)</label>
+                        <input
+                            type="number"
+                            name="amount"
+                            class="form-control"
+                            required
+                            min="1"
+                            @if($maxAmount) max="{{ $maxAmount }}" @endif
+                            step="1"
+                            value="{{ old('amount', $isDemo ? 5 : '') }}"
+                            placeholder="{{ $isDemo ? 'Max '.$maxAmount.' in demo' : 'Amount' }}"
+                        >
+                    </div>
 
-        <option value="MTN">
-            MTN Mobile Money
-        </option>
+                    <div class="mb-3">
+                        <label class="form-label">Payment Date</label>
+                        <input
+                            type="date"
+                            name="payment_date"
+                            class="form-control"
+                            required
+                            value="{{ old('payment_date', now()->toDateString()) }}"
+                        >
+                    </div>
 
-        <option value="ORANGE">
-            Orange Money
-        </option>
+                    <div class="mb-3">
+                        <label class="form-label">Balance remaining (optional)</label>
+                        <input
+                            type="number"
+                            name="balance"
+                            class="form-control"
+                            min="0"
+                            step="1"
+                            value="{{ old('balance', 0) }}"
+                        >
+                    </div>
 
-    </select>
+                    <input type="hidden" name="payment_method" value="mobile_money">
 
-</div>
-<div
-    class="mb-3"
-    id="phone-section"
-    style="display: none;"
->
+                    <div class="mb-3">
+                        <label class="form-label">Mobile Money Network</label>
+                        <select name="mobile_operator" id="mobile_operator" class="form-select" required>
+                            <option value="">Select network</option>
+                            <option value="MTN" @selected(old('mobile_operator') === 'MTN')>MTN Mobile Money</option>
+                            <option value="ORANGE" @selected(old('mobile_operator') === 'ORANGE')>Orange Money</option>
+                        </select>
+                    </div>
 
-    <label class="form-label">
-        Mobile Money Phone Number
-    </label>
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number</label>
+                        <input
+                            type="text"
+                            name="phone_number"
+                            id="phone_number"
+                            class="form-control"
+                            required
+                            value="{{ old('phone_number') }}"
+                            placeholder="677123456 or 237677123456"
+                        >
+                        <small class="text-muted">
+                            Cameroon MTN/Orange number that will authorize the payment.
+                        </small>
+                    </div>
 
-    <input
-        type="text"
-        name="phone_number"
-        id="phone_number"
-        class="form-control"
-        placeholder="Example: 677123456"
-    >
-
-    <small class="text-muted">
-        Enter the MTN or Orange number that will authorize the payment.
-    </small>
-
-</div>
-
-</div>
-
-    <label>Deceased:</label><br>
-    <select name="deceased_id" required style="width:100%; padding:10px;">
-        @foreach($deceaseds as $deceased)
-            <option value="{{ $deceased->id }}">
-                {{ $deceased->full_name }}
-            </option>
-        @endforeach
-    </select>
-
-    <br><br>
-
-    <label>Amount:</label><br>
-    <input type="number" name="amount" required style="width:100%; padding:10px;">
-
-    <br><br>
-
-    <label>Payment Date:</label><br>
-    <input type="date" name="payment_date" required style="width:100%; padding:10px;">
-
-    <br><br>
-
-    <label>Balance:</label><br>
-    <input type="number" name="balance" required style="width:100%; padding:10px;">
-
-    <br><br>
-
-    <label>Status:</label><br>
-    <select name="status" style="width:100%; padding:10px;">
-        <option value="paid">Paid</option>
-        <option value="pending">Pending</option>
-    </select>
-
-    <br><br>
-
-    <div style="text-align:center;">
-        <button type="submit"
-            style="background:green; color:white; padding:12px 30px; border:none; border-radius:8px; font-size:16px;">
-            Submit Payment
-        </button>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-success btn-lg px-4">
+                            Pay with CamPay
+                        </button>
+                    </div>
+                </form>
+            @endif
+        </div>
     </div>
-</form>
-<script>
-
-document.addEventListener('DOMContentLoaded', function () {
-
-    const paymentMethod =
-        document.getElementById('payment_method');
-
-    const mobileMoneySection =
-        document.getElementById('mobile-money-section');
-
-    const phoneSection =
-        document.getElementById('phone-section');
-
-    const mobileOperator =
-        document.getElementById('mobile_operator');
-
-    const phoneNumber =
-        document.getElementById('phone_number');
-
-
-    paymentMethod.addEventListener('change', function () {
-
-        if (this.value === 'mobile_money') {
-
-            mobileMoneySection.style.display = 'block';
-            phoneSection.style.display = 'block';
-
-            mobileOperator.required = true;
-            phoneNumber.required = true;
-
-        } else {
-
-            mobileMoneySection.style.display = 'none';
-            phoneSection.style.display = 'none';
-
-            mobileOperator.required = false;
-            phoneNumber.required = false;
-
-        }
-
-    });
-
-});
-
-</script>
+</div>
+@endsection
