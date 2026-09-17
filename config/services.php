@@ -40,6 +40,7 @@ return [
     'huggingface' => [
         'token' => env('HF_TOKEN'),
         'model' => env('HF_MODEL', 'Qwen/Qwen2.5-7B-Instruct:fastest'),
+        'base_url' => env('HF_BASE_URL', 'https://router.huggingface.co/v1'),
     ],
 
     'campay' => [

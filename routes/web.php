@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\GeolocationController;
 use App\Http\Controllers\FairePartController;
+use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\ProfileController;
 
 /*
@@ -92,6 +93,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/faire-part', [FairePartController::class, 'create'])->name('faire-part.create');
     Route::post('/faire-part/generate', [FairePartController::class, 'generate'])->name('faire-part.generate');
+
+    Route::get('/ai', [AiAssistantController::class, 'index'])->name('ai.index');
+    Route::post('/ai/generate', [AiAssistantController::class, 'generate'])->name('ai.generate');
 });
 
 Route::post('/schedule/{id}/confirm', [ScheduleController::class, 'confirm'])

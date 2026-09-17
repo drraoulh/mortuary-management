@@ -19,7 +19,13 @@
     href="{{ route('faire-part.create') }}"
     class="btn btn-success mb-3"
 >
-    🕊️ Generate Faire-part
+    Générer Faire-part
+</a>
+   <a
+    href="{{ route('ai.index') }}"
+    class="btn btn-outline-success mb-3"
+>
+    Assistant IA
 </a>
     <a href="{{ route('deceased.create') }}" class="btn btn-primary mb-3">
         Register New Body

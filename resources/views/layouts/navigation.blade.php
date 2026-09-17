@@ -25,6 +25,14 @@
             <li class="nav-item">
                 <a class="nav-link" href="{{ route('schedule.index') }}">Schedule</a>
             </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('ai.index') }}">IA</a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" href="{{ route('geolocation.index') }}">Géo</a>
+            </li>
         </ul>
         @if(auth()->check() && auth()->user()->role === 'admin')
             <a class="nav-link text-white me-3" href="{{ route('admin.dashboard') }}">Admin</a>

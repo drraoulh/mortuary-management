@@ -110,6 +110,18 @@
                     </a>
                 </li>
 
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('ai.index') }}">
+                        IA
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('geolocation.index') }}">
+                        Géo
+                    </a>
+                </li>
+
             </ul>
 
             {{-- USER / LOGOUT --}}
