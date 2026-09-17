@@ -157,7 +157,11 @@
                                 @if(session('ussd_code'))
                                     (dial <strong>{{ session('ussd_code') }}</strong> if prompted)
                                 @endif
-                                . This page refreshes the CamPay status automatically.
+                                .
+                                @if(config('services.campay.use_demo'))
+                                    Demo mode charges <strong>25 XAF</strong> on CamPay even if the invoice amount differs.
+                                @endif
+                                This page refreshes the CamPay status automatically.
                             </p>
 
                         </div>

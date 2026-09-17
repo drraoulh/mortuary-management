@@ -35,16 +35,9 @@ class PaymentController extends Controller
 
     public function store(Request $request, CamPayService $campay)
     {
-        $maxAmount = $campay->maxAmount();
-
-        $amountRules = ['required', 'numeric', 'min:1'];
-        if ($maxAmount !== null) {
-            $amountRules[] = 'max:' . $maxAmount;
-        }
-
         $request->validate([
             'deceased_id' => 'required|exists:deceaseds,id',
-            'amount' => $amountRules,
+            'amount' => ['required', 'numeric', 'min:1'],
             'balance' => 'nullable|numeric|min:0',
             'payment_date' => 'required|date',
             'payment_method' => 'required|in:mobile_money',
@@ -53,10 +46,6 @@ class PaymentController extends Controller
                 'required',
                 'regex:/^(?:237)?6[5-9][0-9]{7}$/',
             ],
-        ], [
-            'amount.max' => $maxAmount
-                ? "CamPay demo allows a maximum of {$maxAmount} XAF per payment."
-                : 'Amount is too high.',
         ]);
 
         $phone = preg_replace('/\D/', '', (string) $request->phone_number);

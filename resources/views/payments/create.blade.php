@@ -23,8 +23,9 @@
             @if($isDemo)
                 <div class="alert alert-info">
                     CamPay <strong>demo</strong> mode is active.
-                    Maximum amount is <strong>{{ number_format($maxAmount, 0) }} XAF</strong>.
-                    Use a real MTN/Orange test number and confirm the USSD prompt on the phone.
+                    You can enter any invoice amount; the backend will collect exactly
+                    <strong>{{ number_format($maxAmount, 0) }} XAF</strong> via CamPay for testing.
+                    Confirm the USSD prompt on the phone.
                 </div>
             @endif
 
@@ -57,10 +58,9 @@
                             class="form-control"
                             required
                             min="1"
-                            @if($maxAmount) max="{{ $maxAmount }}" @endif
                             step="1"
-                            value="{{ old('amount', $isDemo ? 5 : '') }}"
-                            placeholder="{{ $isDemo ? 'Max '.$maxAmount.' in demo' : 'Amount' }}"
+                            value="{{ old('amount') }}"
+                            placeholder="Invoice amount (XAF)"
                         >
                     </div>
 

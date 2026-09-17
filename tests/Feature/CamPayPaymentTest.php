@@ -63,17 +63,26 @@ class CamPayPaymentTest extends TestCase
         Http::assertSent(function ($request) {
             return $request->url() === 'https://demo.campay.net/api/collect/'
                 && $request->header('Authorization')[0] === 'Token test-permanent-token'
-                && $request['amount'] === '5'
+                && $request['amount'] === '25'
                 && $request['from'] === '237650000000';
         });
     }
 
-    public function test_demo_mode_rejects_amount_above_25(): void
+    public function test_demo_mode_always_collects_25_regardless_of_entered_amount(): void
     {
         config([
             'services.campay.use_demo' => true,
             'services.campay.simulation' => false,
+            'services.campay.base_url' => 'https://demo.campay.net',
             'services.campay.token' => 'test-permanent-token',
+        ]);
+
+        Http::fake([
+            'https://demo.campay.net/api/collect/' => Http::response([
+                'reference' => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+                'ussd_code' => '*126#',
+                'operator' => 'MTN',
+            ], 200),
         ]);
 
         $user = User::factory()->create(['role' => 'staff']);
@@ -87,7 +96,7 @@ class CamPayPaymentTest extends TestCase
 
         $response = $this->actingAs($user)->post(route('payments.store'), [
             'deceased_id' => $deceased->id,
-            'amount' => 100,
+            'amount' => 15000,
             'balance' => 0,
             'payment_date' => now()->toDateString(),
             'payment_method' => 'mobile_money',
@@ -95,8 +104,16 @@ class CamPayPaymentTest extends TestCase
             'phone_number' => '650000000',
         ]);
 
-        $response->assertSessionHasErrors('amount');
-        $this->assertSame(0, Payment::count());
+        $payment = Payment::first();
+        $this->assertNotNull($payment);
+        $response->assertRedirect(route('payments.processing', $payment));
+        $this->assertEquals(15000, (float) $payment->amount);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://demo.campay.net/api/collect/'
+                && $request['amount'] === '25'
+                && $request['from'] === '237650000000';
+        });
     }
 
     public function test_status_check_marks_payment_successful(): void

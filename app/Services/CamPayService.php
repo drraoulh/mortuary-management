@@ -98,6 +98,12 @@ class CamPayService
         string $description,
         string $externalReference
     ): array {
+        // Demo CamPay only accepts up to 25 XAF.
+        // Always charge exactly 25 on the gateway, regardless of the app amount.
+        $chargeAmount = $this->isDemo()
+            ? (float) ($this->maxAmount() ?? 25)
+            : $amount;
+
         if (config('services.campay.simulation')) {
             return [
                 'reference' => 'SIM-' . strtoupper(bin2hex(random_bytes(4))),
@@ -105,21 +111,15 @@ class CamPayService
                 'simulation' => true,
                 'ussd_code' => '*126#',
                 'operator' => 'MTN',
-                'amount' => $amount,
+                'amount' => $chargeAmount,
+                'requested_amount' => $amount,
                 'from' => $phoneNumber,
                 'description' => $description,
                 'external_reference' => $externalReference,
             ];
         }
 
-        $max = $this->maxAmount();
-        if ($max !== null && $amount > $max) {
-            throw new Exception(
-                "CamPay demo maximum amount is {$max} XAF. Use a smaller amount while CAMPAY_USE_DEMO=true."
-            );
-        }
-
-        $amountValue = (string) (int) round($amount);
+        $amountValue = (string) (int) round($chargeAmount);
 
         if ((int) $amountValue < 1) {
             throw new Exception('CamPay amount must be at least 1 XAF.');
