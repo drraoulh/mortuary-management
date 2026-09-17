@@ -6,26 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('schedules', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
-            $table->foreignId('deceased_id')->constrained('deceaseds');
-            $table->date('release_date');
-            $table->string('location');
+            $table->foreignId('deceased_id')->constrained('deceaseds')->cascadeOnDelete();
+            $table->date('release_date')->nullable();
+            $table->string('location')->nullable();
             $table->date('pickup_date');
             $table->time('pickup_time');
+            $table->date('burial_date')->nullable();
+            $table->string('status')->default('pending');
             $table->text('notes')->nullable();
+            $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('schedules');

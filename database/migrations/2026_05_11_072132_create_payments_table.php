@@ -11,6 +11,11 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
 
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
             $table->foreignId('deceased_id')
                 ->constrained('deceaseds')
                 ->onDelete('cascade');
@@ -20,15 +25,10 @@ return new class extends Migration
             $table->decimal('balance', 10, 2)->default(0);
             $table->string('receipt_number')->unique();
             $table->string('transaction_id')->nullable();
-
-$table->string('payment_method')->default('Campay');
-
-$table->timestamp('confirmed_at')->nullable();
-            $table->enum('status', [
-    'pending',
-    'confirmed'
-])->default('pending');
-
+            $table->string('payment_method')->default('mobile_money');
+            $table->boolean('confirmed')->default(false);
+            $table->timestamp('confirmed_at')->nullable();
+            $table->string('status')->default('pending');
             $table->timestamps();
         });
     }

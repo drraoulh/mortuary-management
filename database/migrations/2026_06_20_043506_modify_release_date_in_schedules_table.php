@@ -6,23 +6,13 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up()
-{
-    Schema::table('schedules', function ($table) {
-        $table->date('release_date')->nullable()->change();
-    });
-}
+    public function up(): void
+    {
+        // release_date is already nullable in the schedules create migration.
+    }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('schedules', function (Blueprint $table) {
-            //
-        });
+        //
     }
 };

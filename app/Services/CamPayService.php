@@ -9,13 +9,14 @@ class CamPayService
 {
     protected string $baseUrl;
 
-   public function __construct()
-{
-    $this->baseUrl = rtrim(
-        config('services.campay.base_url'),
-        '/'
-    );
-}
+    public function __construct()
+    {
+        $this->baseUrl = rtrim(
+            (string) config('services.campay.base_url'),
+            '/'
+        );
+    }
+
     protected function getToken(): string
     {
         $response = Http::acceptJson()
@@ -31,7 +32,7 @@ class CamPayService
             );
         }
 
-        return $response->json('token');
+        return (string) $response->json('token');
     }
 
     /**
@@ -42,70 +43,57 @@ class CamPayService
      * as successful from the application.
      */
     public function collect(
-    float $amount,
-    string $phoneNumber,
-    string $description,
-    string $externalReference
-): array {
+        float $amount,
+        string $phoneNumber,
+        string $description,
+        string $externalReference
+    ): array {
+        if (config('services.campay.simulation')) {
+            return [
+                'reference' => 'SIM-' . strtoupper(bin2hex(random_bytes(4))),
+                'status' => 'PENDING',
+                'simulation' => true,
+                'amount' => $amount,
+                'from' => $phoneNumber,
+                'description' => $description,
+                'external_reference' => $externalReference,
+            ];
+        }
 
-    $token = $this->getToken();
+        $token = $this->getToken();
 
-    dd([
-        'message' => 'CAMPAY TOKEN RECEIVED',
-        'token_exists' => !empty($token),
-        'token_length' => strlen($token),
-    ]);
+        $response = Http::withToken($token)
+            ->acceptJson()
+            ->post($this->baseUrl . '/api/collect/', [
+                'amount' => $amount,
+                'currency' => 'XAF',
+                'from' => $phoneNumber,
+                'description' => $description,
+                'external_reference' => $externalReference,
+            ]);
 
-    $response = Http::withToken($token)
-        ->acceptJson()
-        ->post($this->baseUrl . '/api/collect/', [
-            'amount' => $amount,
-            'currency' => 'XAF',
-            'from' => $phoneNumber,
-            'description' => $description,
-            'external_reference' => $externalReference,
-        ]);
+        if ($response->failed()) {
+            throw new Exception(
+                'CamPay payment request failed: ' .
+                $response->body()
+            );
+        }
 
-    dd([
-        'status_code' => $response->status(),
-        'successful' => $response->successful(),
-        'body' => $response->body(),
-        'json' => $response->json(),
-    ]);
-
-    if ($response->failed()) {
-        throw new \Exception(
-            'CamPay payment request failed: ' .
-            $response->body()
-        );
+        return $response->json() ?? [];
     }
-
-    return $response->json();
-}
 
     /**
      * Check transaction status.
      */
     public function status(string $reference): array
     {
-        // ---------------------------------------------
-        // SIMULATION MODE
-        // ---------------------------------------------
-
         if (config('services.campay.simulation')) {
-
             return [
                 'reference' => $reference,
-
                 'status' => 'PENDING',
-
                 'simulation' => true,
             ];
         }
-
-        // ---------------------------------------------
-        // REAL CAMPAY MODE
-        // ---------------------------------------------
 
         $token = $this->getToken();
 
@@ -119,13 +107,12 @@ class CamPayService
             );
 
         if ($response->failed()) {
-
             throw new Exception(
                 'Unable to check CamPay transaction: ' .
                 $response->body()
             );
         }
 
-        return $response->json();
+        return $response->json() ?? [];
     }
 }

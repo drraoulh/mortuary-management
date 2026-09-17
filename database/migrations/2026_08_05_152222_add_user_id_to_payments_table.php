@@ -8,13 +8,23 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // user_id already exists in the payments table.
-        // Nothing to add here.
+        Schema::table('payments', function (Blueprint $table) {
+            if (!Schema::hasColumn('payments', 'user_id')) {
+                $table->foreignId('user_id')
+                    ->nullable()
+                    ->after('id')
+                    ->constrained('users')
+                    ->nullOnDelete();
+            }
+        });
     }
 
     public function down(): void
     {
-        // Nothing to remove because this migration
-        // did not create the column.
+        Schema::table('payments', function (Blueprint $table) {
+            if (Schema::hasColumn('payments', 'user_id')) {
+                $table->dropConstrainedForeignId('user_id');
+            }
+        });
     }
 };

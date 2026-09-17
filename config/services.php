@@ -40,20 +40,10 @@ return [
 'gemini' => [
     'api_key' => env('GEMINI_API_KEY'),
 ],
-   'campay' => [
-
-    'base_url' => env(
-        'CAMPAY_BASE_URL',
-        'https://demo.campay.net'
-    ),
-
-    'username' => env(
-        'CAMPAY_USERNAME'
-    ),
-
-    'password' => env(
-        'CAMPAY_PASSWORD'
-    ),
-
-],
+    'campay' => [
+        'base_url' => env('CAMPAY_BASE_URL', 'https://demo.campay.net'),
+        'username' => env('CAMPAY_USERNAME'),
+        'password' => env('CAMPAY_PASSWORD'),
+        'simulation' => env('CAMPAY_SIMULATION', true),
+    ],
 ];
