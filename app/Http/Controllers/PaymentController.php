@@ -98,10 +98,19 @@ class PaymentController extends Controller
                 'error' => $e->getMessage(),
             ]);
 
-            $payment->update([
-                'status' => 'failed',
-                'campay_status' => 'FAILED',
-            ]);
+            try {
+                $payment->forceFill([
+                    'status' => 'failed',
+                    'campay_status' => 'FAILED',
+                ])->save();
+            } catch (\Throwable $updateError) {
+                // Older MySQL ENUM schemas may reject "failed".
+                // Keep the original CamPay error visible to the user.
+                Log::warning('Unable to mark payment as failed', [
+                    'payment_id' => $payment->id ?? null,
+                    'error' => $updateError->getMessage(),
+                ]);
+            }
 
             return redirect()
                 ->route('payments.create')
