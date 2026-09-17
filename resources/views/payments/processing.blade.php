@@ -89,6 +89,20 @@
 
                     </p>
 
+                    @if(session('ussd_code'))
+                        <p>
+                            <strong>USSD code:</strong><br>
+                            <span class="fs-4 fw-bold">{{ session('ussd_code') }}</span>
+                        </p>
+                    @endif
+
+                    @if($payment->campay_reference)
+                        <p>
+                            <strong>CamPay reference:</strong><br>
+                            <code>{{ $payment->campay_reference }}</code>
+                        </p>
+                    @endif
+
 
                     {{-- STATUS --}}
                     <p>
@@ -139,21 +153,18 @@
                             </h5>
 
                             <p class="mb-0">
-                                Please confirm the payment on your phone.
+                                Confirm the payment on your phone
+                                @if(session('ussd_code'))
+                                    (dial <strong>{{ session('ussd_code') }}</strong> if prompted)
+                                @endif
+                                .
+                                @if(config('services.campay.use_demo'))
+                                    Demo mode charges <strong>25 XAF</strong> on CamPay even if the invoice amount differs.
+                                @endif
+                                This page refreshes the CamPay status automatically.
                             </p>
 
                         </div>
-
-
-                        {{-- TEST / SIMULATION BUTTON --}}
-
-                       
-
-
-                        <p class="text-muted mt-3">
-                            This button is only for testing.
-                            It simulates a successful CamPay transaction.
-                        </p>
 
 
                     {{-- ========================================= --}}

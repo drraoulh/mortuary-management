@@ -6,24 +6,21 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->boolean('confirmed')->default(false);
-    });
-        
+            if (!Schema::hasColumn('payments', 'confirmed')) {
+                $table->boolean('confirmed')->default(false);
+            }
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('payments', 'confirmed')) {
+                $table->dropColumn('confirmed');
+            }
         });
     }
 };

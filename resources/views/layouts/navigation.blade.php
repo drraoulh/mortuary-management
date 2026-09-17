@@ -15,21 +15,20 @@
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="/storage">Storage Rooms</a>
+                <a class="nav-link" href="{{ route('storage.index') }}">Storage Rooms</a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="/payments">Payments</a>
+                <a class="nav-link" href="{{ route('payments.index') }}">Payments</a>
             </li>
 
             <li class="nav-item">
-                <a class="nav-link" href="/schedule">Schedule</a>
+                <a class="nav-link" href="{{ route('schedule.index') }}">Schedule</a>
             </li>
         </ul>
-        @if(auth()->user()->role == 'admin')
-    <a href="/dashboard">Dashboard</a>
-    <a href="/storage">Storage</a>
-@endif
+        @if(auth()->check() && auth()->user()->role === 'admin')
+            <a class="nav-link text-white me-3" href="{{ route('admin.dashboard') }}">Admin</a>
+        @endif
 
         <form method="POST" action="{{ route('logout') }}">
             @csrf
