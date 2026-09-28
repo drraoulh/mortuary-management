@@ -7,54 +7,52 @@ use App\Models\Deceased;
 use Illuminate\Http\Request;
 
 class ScheduleController extends Controller
-{
+{ 
     public function confirm($id)
-    {
-        $schedule = Schedule::findOrFail($id);
+{
+    $schedule = Schedule::findOrFail($id);
 
-        $schedule->status = 'confirmed';
+    $schedule->status = 'confirmed';
 
-        $schedule->save();
+    $schedule->save();
 
-        return back()->with('success', 'Schedule Confirmed');
-    }
-
+    return back()->with(
+        'success',
+        'Schedule Confirmed'
+    );
+}
     public function index()
     {
-        $schedules = Schedule::with('deceased')->orderBy('pickup_date')->get();
-
+        $schedules = Schedule::all();
         return view('schedule.index', compact('schedules'));
     }
 
-    public function create()
-    {
-        $deceaseds = Deceased::orderBy('full_name')->get();
+   public function create()
+{
+    $deceaseds = \App\Models\Deceased::all();
 
-        return view('schedule.create', compact('deceaseds'));
-    }
+    return view('schedule.create', compact('deceaseds'));
+}
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'deceased_id' => 'required|exists:deceaseds,id',
-            'pickup_date' => 'required|date',
-            'pickup_time' => 'required',
-            'burial_date' => 'nullable|date',
-            'location' => 'nullable|string|max:255',
-        ]);
+{
+    $request->validate([
+    'deceased_id' => 'required',
+    'pickup_date' => 'required|date',
+    'pickup_time' => 'required',
+    'burial_date' => 'required|date',
+]);
 
-        Schedule::create([
-            'deceased_id' => $request->deceased_id,
-            'pickup_date' => $request->pickup_date,
-            'pickup_time' => $request->pickup_time,
-            'burial_date' => $request->burial_date,
-            'release_date' => $request->pickup_date,
-            'location' => $request->location,
-            'notes' => $request->notes,
-            'status' => 'pending',
-        ]);
+   Schedule::create([
+    'deceased_id' => $request->deceased_id,
+    'pickup_date' => $request->pickup_date,
+    'pickup_time' => $request->pickup_time,
+    'burial_date' => $request->burial_date,
+    'release_date' => $request->pickup_date,
+    'notes' => $request->notes,
+]);
 
-        return redirect()->route('schedule.index')
-            ->with('success', 'Schedule created successfully');
-    }
+    return redirect()->route('schedule.index')
+        ->with('success', 'Schedule created successfully');
+}
 }

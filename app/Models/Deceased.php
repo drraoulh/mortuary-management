@@ -9,34 +9,21 @@ class Deceased extends Model
 {
     protected $fillable = [
         'user_id',
-        'identifier',
         'full_name',
         'gender',
-        'date_of_birth',
         'date_of_death',
         'cause_of_death',
         'admission_date',
-        'release_date',
-        'room_name',
-        'room_type',
-        'price',
-        'security_key',
+        'security key',
         'longitude',
         'latitude',
         'location_address',
+
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    /**
-     * Family / client accounts that unlocked this record with its verification key.
-     */
-    public function verifiedBy()
-    {
-        return $this->belongsToMany(User::class)->withTimestamps();
     }
 
 

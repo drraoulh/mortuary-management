@@ -8,10 +8,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasColumn('payments', 'confirmed_at')) {
-            return;
-        }
-
         Schema::table('payments', function (Blueprint $table) {
             $table->timestamp('confirmed_at')->nullable()->after('confirmed');
         });

@@ -9,20 +9,16 @@ use Symfony\Component\HttpFoundation\Response;
 class RoleMiddleware
 {
     /**
-     * Allow the request only if the user has one of the given roles.
-     *
-     * Usage: ->middleware('role:admin,manager')
+     * Handle an incoming request.
      *
      * @param  Closure(Request): (Response)  $next
      */
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    public function handle(Request $request, Closure $next): Response
     {
-        $user = $request->user();
-
-        if (! $user || ! in_array($user->role, $roles, true)) {
-            abort(403);
-        }
-
+        
+    if (auth()->user()->role != $role) {
+        abort(403);
+    }
         return $next($request);
     }
 }

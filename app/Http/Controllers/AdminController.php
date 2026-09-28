@@ -7,65 +7,35 @@ use App\Models\Payment;
 use App\Models\Schedule;
 use App\Models\StorageRoom;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 
 class AdminController extends Controller
 {
     public function dashboard()
     {
-        $roleCounts = User::selectRaw('role, count(*) as total')
-            ->groupBy('role')
-            ->pluck('total', 'role');
+        $totalDeceased = Deceased::count();
 
-        return view('admin.dashboard', [
-            'totalUsers' => User::count(),
-            'roleCounts' => $roleCounts,
+        $totalPayments = Payment::count();
 
-            'totalDeceased' => Deceased::count(),
-            'totalSchedules' => Schedule::count(),
+        $totalRevenue = Payment::sum('amount');
 
-            'totalRooms' => StorageRoom::count(),
-            'availableRooms' => StorageRoom::where('status', 'available')->count(),
+        $totalSchedules = Schedule::count();
 
-            'totalPayments' => Payment::count(),
-            'totalRevenue' => Payment::paid()->sum('amount'),
-            'pendingPayments' => Payment::pending()->count(),
+        $totalUsers = User::count();
 
-            'monthlyRevenue' => $this->monthlyRevenue(),
+        $availableRooms = StorageRoom::where('status', 'available')
+            ->count();
 
-            'recentUsers' => User::latest()->limit(6)->get(),
+        $pendingPayments = Payment::where('status', 'pending')
+            ->count();
 
-            'recentPayments' => Payment::with(['deceased', 'user'])
-                ->latest()
-                ->limit(6)
-                ->get(),
-        ]);
-    }
-
-    /**
-     * Paid amounts for the last 6 months, oldest first: ['Apr 2026' => 150000, ...].
-     */
-    private function monthlyRevenue(): array
-    {
-        $start = now()->startOfMonth()->subMonths(5);
-
-        $months = [];
-
-        for ($i = 0; $i < 6; $i++) {
-            $months[$start->copy()->addMonths($i)->format('M Y')] = 0;
-        }
-
-        Payment::paid()
-            ->where('payment_date', '>=', $start->toDateString())
-            ->get(['amount', 'payment_date'])
-            ->each(function (Payment $payment) use (&$months) {
-                $key = Carbon::parse($payment->payment_date)->format('M Y');
-
-                if (isset($months[$key])) {
-                    $months[$key] += (float) $payment->amount;
-                }
-            });
-
-        return $months;
+        return view('admin.dashboard', compact(
+            'totalDeceased',
+            'totalPayments',
+            'totalRevenue',
+            'totalSchedules',
+            'totalUsers',
+            'availableRooms',
+            'pendingPayments'
+        ));
     }
 }

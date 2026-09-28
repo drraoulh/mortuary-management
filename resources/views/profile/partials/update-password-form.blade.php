@@ -1,37 +1,47 @@
 <section>
-    <h2 class="h5 fw-semibold mb-1">Update password</h2>
-    <p class="text-muted small mb-4">Use a long, random password to keep your account secure.</p>
+    <header>
+        <h2 class="text-lg font-medium text-gray-900">
+            {{ __('Update Password') }}
+        </h2>
 
-    <form method="post" action="{{ route('password.update') }}">
+        <p class="mt-1 text-sm text-gray-600">
+            {{ __('Ensure your account is using a long, random password to stay secure.') }}
+        </p>
+    </header>
+
+    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
         @csrf
         @method('put')
 
-        <div class="mb-3">
-            <label for="update_password_current_password" class="form-label fw-semibold">Current password</label>
-            <input id="update_password_current_password" name="current_password" type="password" autocomplete="current-password"
-                   class="form-control @error('current_password', 'updatePassword') is-invalid @enderror">
-            @error('current_password', 'updatePassword') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <div>
+            <x-input-label for="update_password_current_password" :value="__('Current Password')" />
+            <x-text-input id="update_password_current_password" name="current_password" type="password" class="mt-1 block w-full" autocomplete="current-password" />
+            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
         </div>
 
-        <div class="mb-3">
-            <label for="update_password_password" class="form-label fw-semibold">New password</label>
-            <input id="update_password_password" name="password" type="password" autocomplete="new-password"
-                   class="form-control @error('password', 'updatePassword') is-invalid @enderror">
-            @error('password', 'updatePassword') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <div>
+            <x-input-label for="update_password_password" :value="__('New Password')" />
+            <x-text-input id="update_password_password" name="password" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
         </div>
 
-        <div class="mb-3">
-            <label for="update_password_password_confirmation" class="form-label fw-semibold">Confirm password</label>
-            <input id="update_password_password_confirmation" name="password_confirmation" type="password" autocomplete="new-password"
-                   class="form-control @error('password_confirmation', 'updatePassword') is-invalid @enderror">
-            @error('password_confirmation', 'updatePassword') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <div>
+            <x-input-label for="update_password_password_confirmation" :value="__('Confirm Password')" />
+            <x-text-input id="update_password_password_confirmation" name="password_confirmation" type="password" class="mt-1 block w-full" autocomplete="new-password" />
+            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <div class="d-flex align-items-center gap-3">
-            <button type="submit" class="btn btn-primary rounded-pill px-4">Save</button>
+        <div class="flex items-center gap-4">
+            <x-primary-button>{{ __('Save') }}</x-primary-button>
 
             @if (session('status') === 'password-updated')
-                <span class="small text-success"><i class="bi bi-check-circle me-1"></i>Saved.</span>
+                <p
+                    x-data="{ show: true }"
+                    x-show="show"
+                    x-transition
+                    x-init="setTimeout(() => show = false, 2000)"
+                    class="text-sm text-gray-600"
+                >{{ __('Saved.') }}</p>
             @endif
         </div>
     </form>

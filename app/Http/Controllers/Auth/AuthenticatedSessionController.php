@@ -42,6 +42,14 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect('/')->with('status', 'You have been logged out.');
+        return redirect('/');
+       if (auth()->user()->role == 'admin') {
+    return redirect('/dashboard');
+}
+
+
+
+return redirect('/staff-dashboard');
     }
+           
 }

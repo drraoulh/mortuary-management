@@ -49,17 +49,4 @@ class Payment extends Model
     {
         return $this->belongsTo(Deceased::class);
     }
-
-    /**
-     * Payments that brought in money: confirmed by an admin/manager or reported successful by CamPay.
-     */
-    public function scopePaid($query)
-    {
-        return $query->whereIn('status', ['confirmed', 'successful']);
-    }
-
-    public function scopePending($query)
-    {
-        return $query->where('status', 'pending');
-    }
 }

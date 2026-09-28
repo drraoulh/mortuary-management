@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Models\Deceased;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
@@ -37,13 +38,11 @@ class PaymentController extends Controller
     | Show payment form
     |--------------------------------------------------------------------------
     */
-    public function create(Request $request)
+    public function create()
     {
-        $deceaseds = $request->user()->visibleDeceased()->orderBy('full_name')->get();
+        $deceaseds = Deceased::all();
 
-        $selectedDeceasedId = $request->query('deceased_id');
-
-        return view('payments.create', compact('deceaseds', 'selectedDeceasedId'));
+        return view('payments.create', compact('deceaseds'));
     }
 
 
@@ -73,11 +72,6 @@ class PaymentController extends Controller
             'regex:/^(?:237)?6[5-9][0-9]{7}$/',
         ],
     ]);
-
-    abort_unless(
-        $request->user()->visibleDeceased()->whereKey($request->deceased_id)->exists(),
-        403
-    );
     
 
 
@@ -209,21 +203,20 @@ class PaymentController extends Controller
         'line' => $e->getLine(),
     ]);
 
-    $payment->update([
-        'status' => 'failed',
-    ]);
-
-    return redirect()
-        ->route('payments.index')
-        ->with(
-            'error',
-            'The mobile money request could not be sent. Please try again.'
-        );
+    return response()->json([
+        'message' => 'CamPay payment failed',
+        'error' => $e->getMessage(),
+        'file' => $e->getFile(),
+        'line' => $e->getLine(),
+    ], 500);
 }
 }
 public function processing(Payment $payment)
 {
-    $this->authorizeOwner($payment);
+    abort_unless(
+        $payment->user_id === auth()->id(),
+        403
+    );
 
     return view(
         'payments.processing',
@@ -237,14 +230,17 @@ public function processing(Payment $payment)
         | A normal user cannot open another
         | user's receipt by changing the URL.
         */
-        $this->authorizeViewer($payment);
+        if (
+            auth()->user()->role !== 'admin' &&
+            $payment->user_id !== auth()->id()
+        ) {
+            abort(403);
+        }
 
         return view('payments.show', compact('payment'));
     }
     public function downloadReceipt(Payment $payment)
 {
-    $this->authorizeViewer($payment);
-
     $pdf = Pdf::loadView(
         'payments.receipt',
         compact('payment')
@@ -264,9 +260,9 @@ public function processing(Payment $payment)
     public function confirm($id)
     {
         /*
-        | Only administrators and staff managers can confirm
+        | Only administrator can confirm
         */
-        if (! auth()->user()->canSupervise()) {
+        if (auth()->user()->role !== 'admin') {
             abort(403);
         }
 
@@ -289,7 +285,10 @@ public function processing(Payment $payment)
     Payment $payment,
     CamPayService $campay
 ) {
-    $this->authorizeOwner($payment);
+    abort_unless(
+        $payment->user_id === auth()->id(),
+        403
+    );
 
     if (!$payment->campay_reference) {
         return response()->json([
@@ -359,15 +358,20 @@ public function processing(Payment $payment)
         'error' => $e->getMessage(),
     ]);
 
-    return response()->json([
-        'status' => 'ERROR',
-        'message' => 'Unable to check the payment status right now.',
-    ], 500);
+    dd([
+        'message' => $e->getMessage(),
+        'payment_id' => $payment->id,
+        'phone' => $phone,
+        'amount' => $request->amount,
+    ]);
 }
 }
 public function simulateSuccess(Payment $payment)
 {
-    $this->authorizeOwner($payment);
+    abort_unless(
+        $payment->user_id === auth()->id(),
+        403
+    );
 
     if ($payment->status !== 'pending') {
         return back()->with(
@@ -376,12 +380,7 @@ public function simulateSuccess(Payment $payment)
         );
     }
 
-    $payment->update([
-        'status' => 'successful',
-        'confirmed' => true,
-        'confirmed_at' => now(),
-        'campay_status' => 'SUCCESSFUL',
-    ]);
+    
 
     return redirect()
         ->route('payments.index')
@@ -391,20 +390,7 @@ public function simulateSuccess(Payment $payment)
         );
 }
 
-    private function authorizeOwner(Payment $payment): void
-    {
-        abort_unless(
-            (int) $payment->user_id === (int) auth()->id(),
-            403
-        );
-    }
+    
 
-    private function authorizeViewer(Payment $payment): void
-    {
-        abort_unless(
-            auth()->user()->canSupervise()
-                || (int) $payment->user_id === (int) auth()->id(),
-            403
-        );
-    }
+
 }

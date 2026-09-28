@@ -8,10 +8,16 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeceasedController;
 use App\Http\Controllers\StorageRoomController;
 use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\GeolocationController;
 use App\Http\Controllers\FairePartController;
+
+
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+*/
 
 
 /*
@@ -27,157 +33,241 @@ Route::get('/', function () {
 
 /*
 |--------------------------------------------------------------------------
-| Authenticated User Routes (all roles)
+| Logout
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/logout', function () {
+
+    auth()->logout();
+
+    return redirect('/');
+
+})->name('logout');
+
+
+/*
+|--------------------------------------------------------------------------
+| Authenticated User Routes
 |--------------------------------------------------------------------------
 */
 
 Route::middleware(['auth'])->group(function () {
 
     /*
-    | /dashboard sends every user to the dashboard of their role.
+    |--------------------------------------------------------------------------
+    | Dashboard
+    |--------------------------------------------------------------------------
     */
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
-
-
-    /*
-    | Profile
-    */
-
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-
-
-    /*
-    | Geolocation
-    */
+    Route::get(
+        '/dashboard',
+        [DashboardController::class, 'index']
+    )->name('dashboard');
 
     Route::get('/geolocation', [GeolocationController::class, 'index'])
-        ->name('geolocation.index');
+    ->name('geolocation.index');
 
-    Route::post('/geolocation/search', [GeolocationController::class, 'search'])
-        ->name('geolocation.search');
+Route::post('/geolocation/search', [GeolocationController::class, 'search'])
+    ->name('geolocation.search');
 
 
     /*
-    | Payments (families see and pay only for deceased they verified)
+    |--------------------------------------------------------------------------
+    | Deceased
+    |--------------------------------------------------------------------------
     */
 
-    Route::resource('payments', PaymentController::class)
-        ->only(['index', 'create', 'store', 'show']);
+    Route::resource(
+        'deceased',
+        DeceasedController::class
+    );
 
-    Route::get('/payments/{payment}/processing', [PaymentController::class, 'processing'])
-        ->name('payments.processing');
-
-    Route::get('/payments/{payment}/check-status', [PaymentController::class, 'checkStatus'])
-        ->name('payments.check-status');
 
     /*
-    | TEST ONLY: simulate a successful payment
+    |--------------------------------------------------------------------------
+    | Storage
+    |--------------------------------------------------------------------------
     */
 
-    Route::post('/payments/{payment}/simulate-success', [PaymentController::class, 'simulateSuccess'])
-        ->name('payments.simulate-success');
-
-    Route::get('/payments/{payment}/receipt', [PaymentController::class, 'downloadReceipt'])
-        ->name('payments.receipt');
+    Route::resource(
+        'storage',
+        StorageRoomController::class
+    );
 
 
     /*
+    |--------------------------------------------------------------------------
+    | Payments
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource(
+        'payments',
+        PaymentController::class
+    );
+
+
+    /*
+    | Payment processing page
+    */
+
+    Route::get(
+        '/payments/{payment}/processing',
+        [PaymentController::class, 'processing']
+    )->name('payments.processing');
+
+
+    /*
+    | Check CamPay transaction status
+    */
+
+    Route::get(
+        '/payments/{payment}/check-status',
+        [PaymentController::class, 'checkStatus']
+    )->name('payments.check-status');
+
+
+    /*
+    | TEST ONLY:
+    | Simulate successful payment
+    */
+
+    Route::post(
+        '/payments/{payment}/simulate-success',
+        [PaymentController::class, 'simulateSuccess']
+    )->name('payments.simulate-success');
+
+
+    /*
+    | Download PDF receipt
+    |
+    | IMPORTANT:
+    | This is the ONLY route using payments.receipt
+    */
+
+    Route::get(
+        '/payments/{payment}/receipt',
+        [PaymentController::class, 'downloadReceipt']
+    )->name('payments.receipt');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Schedule
+    |--------------------------------------------------------------------------
+    */
+
+    Route::resource(
+        'schedule',
+        ScheduleController::class
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
     | Deceased Verification
+    |--------------------------------------------------------------------------
     */
 
-    Route::get('/verify', [DeceasedController::class, 'verifyForm'])
-        ->name('deceased.verify-form');
+    Route::get(
+        '/verify',
+        [DeceasedController::class, 'verifyForm']
+    );
 
-    Route::post('/verify', [DeceasedController::class, 'verify'])
-        ->name('deceased.verify');
+    Route::post(
+        '/verify',
+        [DeceasedController::class, 'verify']
+    );
 
 
     /*
-    | Faire-part
+    |--------------------------------------------------------------------------
+    | Admin
+    |--------------------------------------------------------------------------
     */
 
-    Route::get('/faire-part', [FairePartController::class, 'create'])
-        ->name('faire-part.create');
+    Route::get(
+        '/admin',
+        [AdminController::class, 'dashboard']
+    )->name('admin.dashboard');
 
-    Route::post('/faire-part/generate', [FairePartController::class, 'generate'])
-        ->name('faire-part.generate');
+
+    /*
+    | Admin confirms payment
+    */
+
+    Route::post(
+        '/payment/{id}/confirm',
+        [PaymentController::class, 'confirm']
+    )->name('payment.confirm');
+
 });
 
 
 /*
 |--------------------------------------------------------------------------
-| Family / Client Routes
+| Staff Dashboard
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:user'])->group(function () {
+Route::get(
+    '/staff-dashboard',
+    function () {
+        return view('staff.dashboard');
+    }
+)->middleware(['auth'])->name('staff.dashboard');
 
-    Route::get('/family', [DashboardController::class, 'family'])
-        ->name('family.dashboard');
+
+Route::middleware(['auth', 'staff'])->group(function () {
+
+    Route::get(
+        '/staff',
+        function () {
+            return view('staff.dashboard');
+        }
+    );
+
 });
 
 
 /*
 |--------------------------------------------------------------------------
-| Mortuary Staff Routes (staff, managers and admins)
+| Admin Users
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:staff,manager,admin'])->group(function () {
-
-    Route::get('/staff', [DashboardController::class, 'staff'])
-        ->name('staff.dashboard');
-
-    Route::redirect('/staff-dashboard', '/staff');
-
-    Route::resource('deceased', DeceasedController::class);
-
-    Route::resource('storage', StorageRoomController::class);
-
-    Route::resource('schedule', ScheduleController::class);
-});
+Route::get(
+    '/admin/users',
+    [UserController::class, 'index']
+)->middleware(['auth']);
 
 
 /*
 |--------------------------------------------------------------------------
-| Staff Manager + Admin Routes
+| Schedule Confirmation
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:manager,admin'])->group(function () {
-
-    Route::get('/manager', [DashboardController::class, 'manager'])
-        ->name('manager.dashboard');
-
-    Route::post('/payment/{id}/confirm', [PaymentController::class, 'confirm'])
-        ->name('payment.confirm');
-
-    Route::post('/schedule/{id}/confirm', [ScheduleController::class, 'confirm'])
-        ->name('schedule.confirm');
-});
+Route::post(
+    '/schedule/{id}/confirm',
+    [ScheduleController::class, 'confirm']
+)->name('schedule.confirm');
 
 
 /*
 |--------------------------------------------------------------------------
-| Admin Routes
+| Authentication Routes
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::get('/faire-part/{id}', [FairePartController::class, 'generate'])
+    ->name('faire-part.generate');
+    
+Route::get('/faire-part', [FairePartController::class, 'create'])
+    ->name('faire-part.create');
 
-    Route::get('/admin', [AdminController::class, 'dashboard'])
-        ->name('admin.dashboard');
-
-    Route::get('/admin/users', [UserController::class, 'index'])
-        ->name('admin.users.index');
-
-    Route::patch('/admin/users/{user}/role', [UserController::class, 'updateRole'])
-        ->name('admin.users.role');
-});
-
+Route::post('/faire-part/generate', [FairePartController::class, 'generate'])
+    ->name('faire-part.generate');
 
 require __DIR__.'/auth.php';

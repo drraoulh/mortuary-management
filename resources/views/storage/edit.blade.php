@@ -1,31 +1,14 @@
-@extends('layouts.app')
+<h1>Edit Storage Room</h1>
 
-@section('title', 'Edit Room ' . $storage->room_number)
+<form method="POST" action="{{ route('storage.update', $storage->id) }}">
+    @csrf
+    @method('PUT')
 
-@section('content')
+    <input type="text" name="room_number" value="{{ $storage->room_number }}"><br><br>
 
-<div class="container pb-4" style="max-width: 760px;">
+    <input type="number" name="capacity" value="{{ $storage->capacity }}"><br><br>
 
-    <div class="page-header">
-        <span class="eyebrow"><i class="bi bi-door-closed me-1"></i> Storage</span>
-        <h1>Edit room {{ $storage->room_number }}</h1>
-    </div>
+    <input type="text" name="status" value="{{ $storage->status }}"><br><br>
 
-    <div class="panel">
-        <div class="panel-body p-4">
-            <form method="POST" action="{{ route('storage.update', $storage) }}">
-                @csrf
-                @method('PUT')
-
-                @include('storage._form')
-
-                <div class="d-flex gap-2 mt-4">
-                    <button type="submit" class="btn btn-primary rounded-pill px-4">Save changes</button>
-                    <a href="{{ route('storage.index') }}" class="btn btn-pink-soft rounded-pill px-4">Cancel</a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-</div>
-@endsection
+    <button type="submit">Update</button>
+</form>

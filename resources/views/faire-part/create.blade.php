@@ -77,13 +77,6 @@
 
                             </select>
 
-                            @if($deceaseds->isEmpty() && auth()->user()->isClient())
-                                <div class="form-text">
-                                    <a href="{{ route('deceased.verify-form') }}">Verify your loved one</a>
-                                    with the key given by the mortuary to see them here.
-                                </div>
-                            @endif
-
                         </div>
 
                         <div class="mb-4">
@@ -108,7 +101,7 @@
                         <div class="d-flex justify-content-between">
 
                             <a
-                                href="{{ route('dashboard') }}"
+                                href="{{ route('deceased.index') }}"
                                 class="btn btn-secondary"
                             >
                                 ← Back

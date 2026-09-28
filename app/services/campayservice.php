@@ -48,15 +48,13 @@ class CamPayService
     string $externalReference
 ): array {
 
-    if (config('services.campay.simulation')) {
-        return [
-            'reference' => 'SIM-' . $externalReference,
-            'status' => 'PENDING',
-            'simulation' => true,
-        ];
-    }
-
     $token = $this->getToken();
+
+    dd([
+        'message' => 'CAMPAY TOKEN RECEIVED',
+        'token_exists' => !empty($token),
+        'token_length' => strlen($token),
+    ]);
 
     $response = Http::withToken($token)
         ->acceptJson()
@@ -67,6 +65,13 @@ class CamPayService
             'description' => $description,
             'external_reference' => $externalReference,
         ]);
+
+    dd([
+        'status_code' => $response->status(),
+        'successful' => $response->successful(),
+        'body' => $response->body(),
+        'json' => $response->json(),
+    ]);
 
     if ($response->failed()) {
         throw new \Exception(
