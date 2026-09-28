@@ -1,13 +1,24 @@
-<h1>Add Storage Room</h1>
+@extends('layouts.app')
 
-<form method="POST" action="{{ route('storage.store') }}">
-    @csrf
+@section('title', 'Add Storage Room')
 
-    <input type="text" name="room_number" placeholder="Room Number"><br><br>
+@section('content')
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="page-hero">
+            <span class="eyebrow">Storage</span>
+            <h1>Add a storage room</h1>
+        </div>
 
-    <input type="number" name="capacity" placeholder="Capacity"><br><br>
+        <form action="{{ route('storage.store') }}" method="POST" class="surface-card p-4">
+            @csrf
+            @include('storage._form')
 
-    <input type="text" name="status" placeholder="Status (available/occupied)"><br><br>
-
-    <button type="submit">Save</button>
-</form>
+            <div class="d-flex gap-2">
+                <button class="btn btn-accent">Save room</button>
+                <a href="{{ route('storage.index') }}" class="btn btn-soft">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+@endsection

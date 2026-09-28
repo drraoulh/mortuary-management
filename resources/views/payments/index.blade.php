@@ -1,234 +1,82 @@
 @extends('layouts.app')
 
+@section('title', 'My Payments')
+
 @section('content')
-
-<div class="container mt-4">
-
-    {{-- Page Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
-
-        <h2>My Payments</h2>
-
-        <a href="{{ route('payments.create') }}" class="btn btn-success">
-            Make Payment
-        </a>
-
+<div class="page-hero d-flex flex-wrap justify-content-between align-items-end gap-3">
+    <div>
+        <span class="eyebrow">Payments</span>
+        <h1>My payments</h1>
+        <p>Mobile Money payments you made and their receipts.</p>
     </div>
-
-
-    {{-- Success Message --}}
-    @if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
-
-
-    {{-- Error Message --}}
-    @if(session('error'))
-        <div class="alert alert-danger">
-            {{ session('error') }}
-        </div>
-    @endif
-
-
-    {{-- Payments Card --}}
-    <div class="card shadow">
-
-        <div class="card-header">
-            <h5 class="mb-0">Payment History</h5>
-        </div>
-
-        <div class="card-body">
-
-            @if($payments->isEmpty())
-
-                <div class="alert alert-info">
-                    You have not made any payments yet.
-                </div>
-
-            @else
-
-                <div class="table-responsive">
-
-                    <table class="table table-bordered table-hover align-middle">
-
-                        <thead class="table-dark">
-
-                            <tr>
-
-                                <th>Receipt Number</th>
-
-                                <th>Deceased</th>
-
-                                <th>Date</th>
-
-                                <th>Amount</th>
-
-                                <th>Method</th>
-
-                                <th>Network</th>
-
-                                <th>Status</th>
-
-                                <th>Action</th>
-
-                            </tr>
-
-                        </thead>
-
-
-                        <tbody>
-
-                            @foreach($payments as $payment)
-
-                                <tr>
-
-                                    {{-- Receipt Number --}}
-                                    <td>
-                                        {{ $payment->receipt_number ?? 'N/A' }}
-                                    </td>
-
-
-                                    {{-- Deceased --}}
-                                    <td>
-                                        {{ optional($payment->deceased)->full_name ?? 'N/A' }}
-                                    </td>
-
-
-                                    {{-- Payment Date --}}
-                                    <td>
-                                        @if($payment->payment_date)
-                                            {{ $payment->payment_date->format('d/m/Y') }}
-                                        @else
-                                            N/A
-                                        @endif
-                                    </td>
-
-
-                                    {{-- Amount --}}
-                                    <td>
-                                        {{ number_format((float) $payment->amount, 0) }}
-                                        FCFA
-                                    </td>
-
-
-                                    {{-- Payment Method --}}
-                                    <td>
-                                        @if($payment->payment_method === 'mobile_money')
-                                            Mobile Money
-                                        @else
-                                            {{ ucfirst(str_replace('_', ' ', $payment->payment_method ?? 'N/A')) }}
-                                        @endif
-                                    </td>
-
-
-                                    {{-- Network --}}
-                                    <td>
-                                        @if($payment->mobile_operator)
-                                            {{ $payment->mobile_operator }}
-                                        @else
-                                            N/A
-                                        @endif
-                                    </td>
-
-
-                                    {{-- Status --}}
-                                    <td>
-
-                                        @if($payment->status === 'successful')
-
-                                            <span class="badge bg-success">
-                                                Successful
-                                            </span>
-
-                                        @elseif($payment->status === 'pending')
-
-                                            <span class="badge bg-warning text-dark">
-                                                Pending
-                                            </span>
-
-                                        @elseif($payment->status === 'failed')
-
-                                            <span class="badge bg-danger">
-                                                Failed
-                                            </span>
-
-                                        @else
-
-                                            <span class="badge bg-secondary">
-                                                {{ ucfirst($payment->status ?? 'Unknown') }}
-                                            </span>
-
-                                        @endif
-
-                                    </td>
-
-
-                                    {{-- Action --}}
-                                    <td>
-
-                                        @if($payment->status === 'successful')
-
-                                            <div class="d-flex gap-2">
-
-                                                <a
-                                                    href="{{ route('payments.show', $payment->id) }}"
-                                                    class="btn btn-sm btn-primary"
-                                                >
-                                                    View Receipt
-                                                </a>
-
-                                                <a
-                                                    href="{{ route('payments.receipt', $payment->id) }}"
-                                                    class="btn btn-sm btn-danger"
-                                                >
-                                                    Download PDF
-                                                </a>
-
-                                            </div>
-
-                                        @elseif($payment->status === 'pending')
-
-                                            <a
-                                                href="{{ route('payments.processing', $payment->id) }}"
-                                                class="btn btn-sm btn-warning"
-                                            >
-                                                Continue Payment
-                                            </a>
-
-                                        @elseif($payment->status === 'failed')
-
-                                            <span class="text-danger">
-                                                Payment Failed
-                                            </span>
-
-                                        @else
-
-                                            <span class="text-muted">
-                                                No Receipt
-                                            </span>
-
-                                        @endif
-
-                                    </td>
-
-                                </tr>
-
-                            @endforeach
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            @endif
-
-        </div>
-
-    </div>
-
+    <a href="{{ route('payments.create') }}" class="btn btn-accent">
+        <i class="bi bi-plus-circle me-1"></i> Make payment
+    </a>
 </div>
 
+<div class="panel">
+    <div class="panel-header">
+        <h2 class="panel-title"><i class="bi bi-receipt"></i> Payment history</h2>
+        <span class="text-muted small">{{ $payments->count() }} payment(s)</span>
+    </div>
+
+    @if($payments->isEmpty())
+        <div class="empty-state">
+            <i class="bi bi-wallet2"></i>
+            You have not made any payments yet.
+        </div>
+    @else
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Receipt</th>
+                        <th>Deceased</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Network</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($payments as $payment)
+                        <tr>
+                            <td class="fw-semibold">{{ $payment->receipt_number ?? 'N/A' }}</td>
+                            <td>{{ optional($payment->deceased)->full_name ?? 'N/A' }}</td>
+                            <td>{{ $payment->payment_date ? $payment->payment_date->format('d/m/Y') : 'N/A' }}</td>
+                            <td>{{ number_format((float) $payment->amount, 0, ',', ' ') }} FCFA</td>
+                            <td>{{ $payment->mobile_operator ?? 'N/A' }}</td>
+                            <td>
+                                <span class="status-badge status-{{ $payment->status }}">
+                                    {{ $payment->status ?? 'unknown' }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                @if(in_array($payment->status, ['successful', 'confirmed'], true))
+                                    <div class="d-inline-flex gap-2">
+                                        <a href="{{ route('payments.show', $payment->id) }}" class="btn btn-sm btn-soft">
+                                            <i class="bi bi-eye"></i> Receipt
+                                        </a>
+                                        <a href="{{ route('payments.receipt', $payment->id) }}" class="btn btn-sm btn-accent">
+                                            <i class="bi bi-file-earmark-pdf"></i> PDF
+                                        </a>
+                                    </div>
+                                @elseif($payment->status === 'pending')
+                                    <a href="{{ route('payments.processing', $payment->id) }}" class="btn btn-sm btn-warning">
+                                        Continue payment
+                                    </a>
+                                @elseif($payment->status === 'failed')
+                                    <span class="text-danger small">Payment failed</span>
+                                @else
+                                    <span class="text-muted small">No receipt</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endif
+</div>
 @endsection

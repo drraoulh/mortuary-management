@@ -33,6 +33,14 @@ class Deceased extends Model
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * Family / client accounts that unlocked this record with its verification key.
+     */
+    public function verifiedBy()
+    {
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
+
     public function payments()
     {
         return $this->hasMany(Payment::class);

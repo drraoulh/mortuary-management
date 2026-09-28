@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Deceased;
 use App\Models\FuneralNotice;
 use App\Services\MortuaryAiService;
 use Illuminate\Http\Request;
@@ -10,9 +9,9 @@ use Illuminate\Support\Facades\Storage;
 
 class FairePartController extends Controller
 {
-    public function create()
+    public function create(Request $request)
     {
-        $deceaseds = Deceased::orderBy('full_name')->get();
+        $deceaseds = $request->user()->visibleDeceased()->orderBy('full_name')->get();
 
         return view('faire-part.create', compact('deceaseds'));
     }
@@ -31,7 +30,7 @@ class FairePartController extends Controller
             'save_notice' => ['nullable', 'boolean'],
         ]);
 
-        $deceased = Deceased::findOrFail($request->deceased_id);
+        $deceased = $request->user()->visibleDeceased()->findOrFail($request->deceased_id);
         $language = $ai->normalizeLanguage($request->input('language', 'fr'));
         $photo = $request->file('photo');
 

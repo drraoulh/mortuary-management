@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
-use App\Models\Deceased;
 use Illuminate\Http\Request;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
@@ -22,12 +21,13 @@ class PaymentController extends Controller
         return view('payments.index', compact('payments'));
     }
 
-    public function create(CamPayService $campay)
+    public function create(Request $request, CamPayService $campay)
     {
-        $deceaseds = Deceased::orderBy('full_name')->get();
+        $deceaseds = $request->user()->visibleDeceased()->orderBy('full_name')->get();
 
         return view('payments.create', [
             'deceaseds' => $deceaseds,
+            'selectedDeceasedId' => $request->query('deceased_id'),
             'isDemo' => $campay->isDemo(),
             'maxAmount' => $campay->maxAmount(),
         ]);
@@ -47,6 +47,11 @@ class PaymentController extends Controller
                 'regex:/^(?:237)?6[5-9][0-9]{7}$/',
             ],
         ]);
+
+        abort_unless(
+            $request->user()->visibleDeceased()->whereKey($request->deceased_id)->exists(),
+            403
+        );
 
         $phone = preg_replace('/\D/', '', (string) $request->phone_number);
 
@@ -121,31 +126,21 @@ class PaymentController extends Controller
 
     public function processing(Payment $payment)
     {
-        abort_unless($payment->user_id === auth()->id(), 403);
+        $this->authorizeOwner($payment);
 
         return view('payments.processing', compact('payment'));
     }
 
     public function show(Payment $payment)
     {
-        if (
-            auth()->user()->role !== 'admin' &&
-            $payment->user_id !== auth()->id()
-        ) {
-            abort(403);
-        }
+        $this->authorizeViewer($payment);
 
         return view('payments.show', compact('payment'));
     }
 
     public function downloadReceipt(Payment $payment)
     {
-        if (
-            auth()->user()->role !== 'admin' &&
-            $payment->user_id !== auth()->id()
-        ) {
-            abort(403);
-        }
+        $this->authorizeViewer($payment);
 
         $pdf = Pdf::loadView('payments.receipt', compact('payment'));
 
@@ -154,9 +149,7 @@ class PaymentController extends Controller
 
     public function confirm($id)
     {
-        if (auth()->user()->role !== 'admin') {
-            abort(403);
-        }
+        abort_unless(auth()->user()->canSupervise(), 403);
 
         $payment = Payment::findOrFail($id);
         $payment->status = 'confirmed';
@@ -169,7 +162,7 @@ class PaymentController extends Controller
 
     public function checkStatus(Payment $payment, CamPayService $campay)
     {
-        abort_unless($payment->user_id === auth()->id(), 403);
+        $this->authorizeOwner($payment);
 
         if (!$payment->campay_reference) {
             return response()->json([
@@ -304,7 +297,7 @@ class PaymentController extends Controller
 
     public function simulateSuccess(Payment $payment)
     {
-        abort_unless($payment->user_id === auth()->id(), 403);
+        $this->authorizeOwner($payment);
 
         if (!config('services.campay.simulation') && !config('app.debug')) {
             abort(403, 'Simulation is disabled.');
@@ -326,5 +319,23 @@ class PaymentController extends Controller
         return redirect()
             ->route('payments.index')
             ->with('success', 'Payment successful! Your receipt is now available.');
+    }
+
+    /**
+     * user_id may come back from the database as a string (e.g. MySQL without native types),
+     * so compare as integers.
+     */
+    private function authorizeOwner(Payment $payment): void
+    {
+        abort_unless((int) $payment->user_id === (int) auth()->id(), 403);
+    }
+
+    private function authorizeViewer(Payment $payment): void
+    {
+        if (auth()->user()->canSupervise()) {
+            return;
+        }
+
+        $this->authorizeOwner($payment);
     }
 }

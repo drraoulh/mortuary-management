@@ -53,8 +53,13 @@
             <input type="text" name="cause_of_death" class="form-control" value="{{ old('cause_of_death') }}">
         </div>
         <div class="col-md-3">
-            <label class="form-label fw-semibold">Room name</label>
-            <input type="text" name="room_name" class="form-control" value="{{ old('room_name') }}">
+            <label class="form-label fw-semibold">Room</label>
+            <input type="text" name="room_name" class="form-control" value="{{ old('room_name') }}" list="storage-rooms">
+            <datalist id="storage-rooms">
+                @foreach($rooms as $room)
+                    <option value="{{ $room->room_number }}">{{ ucfirst($room->status) }} · capacity {{ $room->capacity }}</option>
+                @endforeach
+            </datalist>
         </div>
         <div class="col-md-3">
             <label class="form-label fw-semibold">Room type</label>

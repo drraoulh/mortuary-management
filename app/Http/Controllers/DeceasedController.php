@@ -3,11 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deceased;
+use App\Models\StorageRoom;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Str;
 
-class DeceasedController extends Controller
+class DeceasedController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('role:manager,admin', only: ['destroy']),
+        ];
+    }
+
     public function index(Request $request)
     {
         $query = Deceased::query();
@@ -23,7 +33,9 @@ class DeceasedController extends Controller
 
     public function create()
     {
-        return view('deceased.create');
+        $rooms = StorageRoom::orderBy('room_number')->get();
+
+        return view('deceased.create', compact('rooms'));
     }
 
     public function store(Request $request)
@@ -44,14 +56,9 @@ class DeceasedController extends Controller
 
         $roomType = $request->room_type ?: 'normal';
 
-        $price = match ($roomType) {
-            'vip' => 25000,
-            'vvip' => 50000,
-            default => 10000,
-        };
-
-        $lastId = Deceased::count() + 1;
-        $identifier = 'MOR-' . date('Y') . '-' . str_pad((string) $lastId, 4, '0', STR_PAD_LEFT);
+        // max(id) rather than count(): after a deletion count() reuses an existing identifier.
+        $nextNumber = (int) Deceased::max('id') + 1;
+        $identifier = 'MOR-' . date('Y') . '-' . str_pad((string) $nextNumber, 4, '0', STR_PAD_LEFT);
 
         $deceased = Deceased::create([
             'user_id' => auth()->id(),
@@ -63,7 +70,7 @@ class DeceasedController extends Controller
             'admission_date' => $request->admission_date,
             'room_name' => $request->room_name,
             'room_type' => $roomType,
-            'price' => $price,
+            'price' => $this->priceFor($roomType),
             'identifier' => $identifier,
             'security_key' => Str::random(10),
             'location_address' => $request->location_address,
@@ -86,7 +93,9 @@ class DeceasedController extends Controller
 
     public function edit(Deceased $deceased)
     {
-        return view('deceased.edit', compact('deceased'));
+        $rooms = StorageRoom::orderBy('room_number')->get();
+
+        return view('deceased.edit', compact('deceased', 'rooms'));
     }
 
     public function update(Request $request, Deceased $deceased)
@@ -94,9 +103,12 @@ class DeceasedController extends Controller
         $request->validate([
             'full_name' => 'required|string|max:255',
             'gender' => 'required|string|max:50',
+            'date_of_birth' => 'nullable|date',
             'date_of_death' => 'required|date',
             'admission_date' => 'required|date',
+            'release_date' => 'nullable|date',
             'cause_of_death' => 'nullable|string|max:255',
+            'room_name' => 'nullable|string|max:255',
             'room_type' => 'nullable|string|in:normal,vip,vvip',
             'location_address' => 'nullable|string|max:255',
             'latitude' => 'nullable|numeric|between:-90,90',
@@ -106,9 +118,12 @@ class DeceasedController extends Controller
         $data = $request->only([
             'full_name',
             'gender',
+            'date_of_birth',
             'date_of_death',
             'cause_of_death',
             'admission_date',
+            'release_date',
+            'room_name',
             'room_type',
             'location_address',
             'latitude',
@@ -116,11 +131,7 @@ class DeceasedController extends Controller
         ]);
 
         if (!empty($data['room_type'])) {
-            $data['price'] = match ($data['room_type']) {
-                'vip' => 25000,
-                'vvip' => 50000,
-                default => 10000,
-            };
+            $data['price'] = $this->priceFor($data['room_type']);
         }
 
         $deceased->update($data);
@@ -152,6 +163,20 @@ class DeceasedController extends Controller
             return back()->with('error', 'Invalid Key');
         }
 
+        // Families keep access to the record (dashboard, payments, faire-part) after verifying once.
+        if ($request->user()->isClient()) {
+            $request->user()->verifiedDeceased()->syncWithoutDetaching([$deceased->id]);
+        }
+
         return view('deceased.show', compact('deceased'));
+    }
+
+    private function priceFor(string $roomType): int
+    {
+        return match ($roomType) {
+            'vip' => 25000,
+            'vvip' => 50000,
+            default => 10000,
+        };
     }
 }

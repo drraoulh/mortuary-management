@@ -17,8 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\RoleMiddleware::class,
         ]);
 
+        // "logout" is excluded so an expired session can still log out instead of hitting "419 Page Expired".
         $middleware->validateCsrfTokens(except: [
             'webhooks/campay',
+            'logout',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

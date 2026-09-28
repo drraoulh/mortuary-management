@@ -9,11 +9,14 @@ class StorageRoom extends Model
     protected $fillable = [
         'room_number',
         'capacity',
-        'status'
+        'status',
     ];
-    public function deceaseds()
-{
-    return $this->hasMany(Deceased::class,'room_name','room_name');
-}
-}
 
+    /**
+     * Deceased whose "room" field matches this room's number.
+     */
+    public function deceaseds()
+    {
+        return $this->hasMany(Deceased::class, 'room_name', 'room_number');
+    }
+}

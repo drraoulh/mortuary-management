@@ -18,26 +18,6 @@
 
                 <div class="card-body text-center">
 
-                    {{-- SUCCESS MESSAGE --}}
-                    @if(session('success'))
-
-                        <div class="alert alert-success">
-                            {{ session('success') }}
-                        </div>
-
-                    @endif
-
-
-                    {{-- ERROR MESSAGE --}}
-                    @if(session('error'))
-
-                        <div class="alert alert-danger">
-                            {{ session('error') }}
-                        </div>
-
-                    @endif
-
-
                     <h5 class="mb-4">
                         Payment Details
                     </h5>

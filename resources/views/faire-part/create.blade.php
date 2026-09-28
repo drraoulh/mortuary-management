@@ -19,6 +19,13 @@
         </div>
     @endif
 
+    @if($deceaseds->isEmpty() && auth()->user()->isClient())
+        <div class="alert alert-info border-0">
+            Verify your deceased relative first with the key given by the mortuary.
+            <a href="{{ route('deceased.verify.form') }}" class="alert-link">Verify now</a>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('faire-part.generate') }}" enctype="multipart/form-data">
         @csrf
 
@@ -27,7 +34,7 @@
             <select name="deceased_id" class="form-select" required>
                 <option value="">-- Select --</option>
                 @foreach($deceaseds as $deceased)
-                    <option value="{{ $deceased->id }}" @selected(old('deceased_id') == $deceased->id)>
+                    <option value="{{ $deceased->id }}" @selected(old('deceased_id', request('deceased_id')) == $deceased->id)>
                         {{ $deceased->full_name }}
                     </option>
                 @endforeach
@@ -38,9 +45,9 @@
             <label class="form-label fw-semibold d-block">Language</label>
             <div class="btn-group lang-toggle" role="group">
                 <input type="radio" class="btn-check" name="language" id="fp-lang-fr" value="fr" @checked(old('language', 'fr') === 'fr')>
-                <label class="btn btn-outline-success" for="fp-lang-fr">FR</label>
+                <label class="btn btn-outline-primary" for="fp-lang-fr">FR</label>
                 <input type="radio" class="btn-check" name="language" id="fp-lang-en" value="en" @checked(old('language') === 'en')>
-                <label class="btn btn-outline-success" for="fp-lang-en">EN</label>
+                <label class="btn btn-outline-primary" for="fp-lang-en">EN</label>
             </div>
         </div>
 
@@ -56,7 +63,11 @@
         </div>
 
         <div class="d-flex justify-content-between">
-            <a href="{{ route('ai.index') }}" class="btn btn-soft">AI Assistant</a>
+            @if(auth()->user()->isClient())
+                <a href="{{ route('family.dashboard') }}" class="btn btn-soft">Back to my space</a>
+            @else
+                <a href="{{ route('ai.index') }}" class="btn btn-soft">AI Assistant</a>
+            @endif
             <button type="submit" class="btn btn-accent">Generate faire-part</button>
         </div>
     </form>
