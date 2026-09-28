@@ -1,13 +1,30 @@
-<h1>Add Storage Room</h1>
+@extends('layouts.app')
 
-<form method="POST" action="{{ route('storage.store') }}">
-    @csrf
+@section('title', 'Add Storage Room')
 
-    <input type="text" name="room_number" placeholder="Room Number"><br><br>
+@section('content')
 
-    <input type="number" name="capacity" placeholder="Capacity"><br><br>
+<div class="container pb-4" style="max-width: 760px;">
 
-    <input type="text" name="status" placeholder="Status (available/occupied)"><br><br>
+    <div class="page-header">
+        <span class="eyebrow"><i class="bi bi-door-closed me-1"></i> Storage</span>
+        <h1>Add storage room</h1>
+    </div>
 
-    <button type="submit">Save</button>
-</form>
+    <div class="panel">
+        <div class="panel-body p-4">
+            <form method="POST" action="{{ route('storage.store') }}">
+                @csrf
+
+                @include('storage._form', ['storage' => null])
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary rounded-pill px-4">Save room</button>
+                    <a href="{{ route('storage.index') }}" class="btn btn-pink-soft rounded-pill px-4">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+@endsection

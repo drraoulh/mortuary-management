@@ -1,76 +1,98 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Deceased Records</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+@extends('layouts.app')
 
-<div class="container mt-4">
-    <h2>Deceased Records</h2>
-    @if(session('success'))
+@section('title', 'Deceased Records')
 
-<div class="alert alert-success">
-    {{ session('success') }}
-</div>
+@section('content')
 
-@endif
-   <a
-    href="{{ route('faire-part.create') }}"
-    class="btn btn-success mb-3"
->
-    🕊️ Generate Faire-part
-</a>
-    <a href="{{ route('deceased.create') }}" class="btn btn-primary mb-3">
-        Register New Body
-    </a>
-    <div style="margin-top: 10px; margin-bottom: 20px;">
-    
-</div>
+<div class="container pb-4">
+
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+        <div>
+            <span class="eyebrow"><i class="bi bi-person-vcard me-1"></i> Records</span>
+            <h1>Deceased records</h1>
+            <p>{{ $deceaseds->count() }} record(s){{ request('search') ? ' matching "' . request('search') . '"' : '' }}.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('faire-part.create') }}" class="btn btn-pink-soft rounded-pill px-3">
+                <i class="bi bi-envelope-paper-heart me-1"></i> Faire-part
+            </a>
+            <a href="{{ route('deceased.create') }}" class="btn btn-primary rounded-pill px-3">
+                <i class="bi bi-plus-lg me-1"></i> Register new body
+            </a>
+        </div>
+    </div>
+
+    @include('partials.flash')
 
     <form method="GET" class="mb-3">
-        <input type="text" name="search" class="form-control" placeholder="Search by name">
+        <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-search text-pink"></i></span>
+            <input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search by name">
+            @if(request('search'))
+                <a href="{{ route('deceased.index') }}" class="btn btn-pink-soft">Clear</a>
+            @endif
+            <button class="btn btn-primary">Search</button>
+        </div>
     </form>
 
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Gender</th>
-                <th>Date of Birth</th>
-                <th>Date of Death</th>
-                <th>Room</th>
-                <th>Room Type</th>
-                <th>Price</th>
-                
-            </tr>
-        </thead>
+    <div class="panel">
+        <div class="panel-body p-0">
+            @if($deceaseds->isEmpty())
+                <div class="empty-state"><i class="bi bi-person-vcard"></i>No records found.</div>
+            @else
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Name</th>
+                                <th>Gender</th>
+                                <th>Date of death</th>
+                                <th>Admitted</th>
+                                <th>Room</th>
+                                <th class="text-end">Price</th>
+                                <th class="pe-4"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($deceaseds as $deceased)
+                                <tr>
+                                    <td class="ps-4">
+                                        <a href="{{ route('deceased.show', $deceased) }}" class="fw-semibold text-reset text-decoration-none">
+                                            {{ $deceased->full_name }}
+                                        </a>
+                                        <div class="small text-muted">{{ $deceased->identifier ?? '—' }}</div>
+                                    </td>
+                                    <td class="small">{{ $deceased->gender }}</td>
+                                    <td class="small">{{ $deceased->date_of_death }}</td>
+                                    <td class="small">{{ $deceased->admission_date }}</td>
+                                    <td class="small">
+                                        {{ $deceased->room_name ?: '—' }}
+                                        @if($deceased->room_type)
+                                            <span class="badge rounded-pill bg-pink-soft ms-1">{{ strtoupper($deceased->room_type) }}</span>
+                                        @endif
+                                    </td>
+                                    <td class="text-end small fw-semibold">
+                                        {{ $deceased->price ? number_format($deceased->price, 0, ',', ' ') : '—' }}
+                                    </td>
+                                    <td class="pe-4 text-end text-nowrap">
+                                        <a href="{{ route('deceased.edit', $deceased) }}" class="btn btn-sm btn-pink-soft rounded-pill px-3">Edit</a>
+                                        @if(auth()->user()->canSupervise())
+                                            <form method="POST" action="{{ route('deceased.destroy', $deceased) }}" class="d-inline"
+                                                  onsubmit="return confirm('Delete this record permanently?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3">Delete</button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
 
-        <tbody>
-            @foreach($deceaseds as $deceased)
-            <tr>
-                <td>{{ $deceased->full_name }}</td>
-                <td>{{ $deceased->gender }}</td>
-                <td>{{ $deceased->date_of_birth }}</td>
-                <td>{{ $deceased->date_of_death }}</td>
-                <td>{{ $deceased->room_name }}</td>
-                <td>{{ $deceased->room_type }}</td>
-                <td>{{ $deceased->price }}</td>
-               
-            </tr>
-        
-            @endforeach
-        </tbody>
-    </table>
 </div>
-<script>
-    setTimeout(function () {
-        let msg = document.getElementById('success-message');
-        if (msg) {
-            msg.style.display = 'none';
-        }
-    }, 3000);
-</script>
-
-</body>
-</html>
+@endsection

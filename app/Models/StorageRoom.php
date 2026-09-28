@@ -13,7 +13,7 @@ class StorageRoom extends Model
     ];
     public function deceaseds()
 {
-    return $this->hasMany(Deceased::class,'room_name','room_name');
+    return $this->hasMany(Deceased::class, 'room_name', 'room_number');
 }
 }
 

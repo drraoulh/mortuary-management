@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Deceased;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 
@@ -11,9 +10,9 @@ class FairePartController extends Controller
     /**
      * Display the deceased selection and photo upload page.
      */
-    public function create()
+    public function create(Request $request)
     {
-        $deceaseds = Deceased::orderBy('full_name')->get();
+        $deceaseds = $request->user()->visibleDeceased()->orderBy('full_name')->get();
 
         return view('faire-part.create', compact('deceaseds'));
     }
@@ -33,7 +32,7 @@ class FairePartController extends Controller
             ],
         ]);
 
-        $deceased = Deceased::findOrFail($request->deceased_id);
+        $deceased = $request->user()->visibleDeceased()->findOrFail($request->deceased_id);
 
         $apiKey = config('services.gemini.api_key');
 

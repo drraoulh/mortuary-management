@@ -3,107 +3,153 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deceased;
+use App\Models\StorageRoom;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Str;
 
-class DeceasedController extends Controller
+class DeceasedController extends Controller implements HasMiddleware
 {
-   public function index(Request $request)
-{
-    $query = Deceased::query();
-
-    if ($request->search) {
-        $query->where('full_name', 'like', '%' . $request->search . '%');
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('role:manager,admin', only: ['destroy']),
+        ];
     }
 
-    $deceaseds = $query->get();
+    public function index(Request $request)
+    {
+        $query = Deceased::query();
 
-    return view('deceased.index', compact('deceaseds'));
-}
+        if ($request->search) {
+            $query->where('full_name', 'like', '%' . $request->search . '%');
+        }
+
+        $deceaseds = $query->latest()->get();
+
+        return view('deceased.index', compact('deceaseds'));
+    }
+
     public function create()
     {
-        return view('deceased.create');
+        return view('deceased.create', [
+            'rooms' => StorageRoom::orderBy('room_number')->get(),
+        ]);
     }
 
-   public function store(Request $request)
-   
-{
-    $request->validate([
-        'full_name' => 'required',
-        'gender' => 'required',
-        'date_of_death' => 'required',
-        'admission_date' => 'required',
-        'location_address' => 'nullable|string|max:255',
-'latitude' => 'nullable|numeric|between:-90,90',
-'longitude' => 'nullable|numeric|between:-180,180',
-    ]);
+    public function store(Request $request)
+    {
+        $request->validate([
+            'full_name' => 'required',
+            'gender' => 'required',
+            'date_of_death' => 'required|date',
+            'admission_date' => 'required|date',
+            'date_of_birth' => 'nullable|date',
+            'release_date' => 'nullable|date',
+            'room_type' => 'nullable|in:normal,vip,vvip',
+            'location_address' => 'nullable|string|max:255',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
+        ]);
 
-    if ($request->room_type == 'vip') {
-        $price = 25000;
-    } elseif ($request->room_type == 'vvip') {
-        $price = 50000;
-    } else {
-        $price = 10000;
+        $price = match ($request->room_type) {
+            'vip' => 25000,
+            'vvip' => 50000,
+            default => 10000,
+        };
+
+        $nextNumber = (int) Deceased::max('id') + 1;
+
+        $identifier = 'MOR-' . date('Y') . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+        $deceased = Deceased::create([
+            'user_id' => auth()->id(),
+            'identifier' => $identifier,
+            'full_name' => $request->full_name,
+            'gender' => $request->gender,
+            'date_of_birth' => $request->date_of_birth,
+            'date_of_death' => $request->date_of_death,
+            'cause_of_death' => $request->cause_of_death,
+            'admission_date' => $request->admission_date,
+            'release_date' => $request->release_date,
+            'room_name' => $request->room_name,
+            'room_type' => $request->room_type ?? 'normal',
+            'price' => $price,
+            'security_key' => Str::random(10),
+            'location_address' => $request->location_address,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+        ]);
+
+        return redirect()
+            ->route('deceased.index')
+            ->with(
+                'success',
+                'Deceased registered successfully. Identifier: ' . $deceased->identifier
+                . ' | Verification key: ' . $deceased->security_key
+            );
     }
-    $uniqueCode = 'DEC-' . strtoupper(substr(md5(time()),0,8));
 
-    $lastId = \App\Models\Deceased::count() + 1;
-
-$identifier = 'MOR-' . date('Y') . '-' . str_pad($lastId, 4, '0', STR_PAD_LEFT);
-
-    $deceased = Deceased::create([
-    'user_id' => auth()->id(),
-    'full_name' => $request->full_name,
-    'gender' => $request->gender,
-    'date_of_death' => $request->date_of_death,
-    'cause_of_death' => $request->cause_of_death,
-    'admission_date' => $request->admission_date,
-        'security_key' => Str::random(10),
-        'location_address' => $request->location_address,
-'latitude' => $request->latitude,
-'longitude' => $request->longitude,
-    ]);
-
-    return redirect()
-->route('deceased.index')
-->with(
-    'success',
-    'Deceased Registered Successfully. Identifier: '
-    .$deceased->identifier
-);
-
-}
+    public function show(Deceased $deceased)
+    {
+        return view('deceased.show', compact('deceased'));
+    }
 
     public function edit(Deceased $deceased)
     {
-        return view('deceased.edit', compact('deceased'));
+        return view('deceased.edit', [
+            'deceased' => $deceased,
+            'rooms' => StorageRoom::orderBy('room_number')->get(),
+        ]);
     }
 
     public function update(Request $request, Deceased $deceased)
     {
-        $deceased->update($request->all());
-        return redirect()->route('deceased.index');
+        $data = $request->validate([
+            'full_name' => 'required|string|max:255',
+            'gender' => 'required|string',
+            'date_of_birth' => 'nullable|date',
+            'date_of_death' => 'required|date',
+            'cause_of_death' => 'required|string|max:255',
+            'admission_date' => 'required|date',
+            'release_date' => 'nullable|date',
+            'room_name' => 'nullable|string|max:50',
+            'room_type' => 'nullable|in:normal,vip,vvip',
+            'location_address' => 'nullable|string|max:255',
+        ]);
+
+        $deceased->update($data);
+
+        return redirect()
+            ->route('deceased.show', $deceased)
+            ->with('success', 'Record updated.');
     }
 
     public function destroy(Deceased $deceased)
     {
         $deceased->delete();
+
         return redirect()->route('deceased.index');
     }
+
     public function verifyForm()
-{
-    return view('deceased.verify');
-}
-
-public function verify(Request $request)
-{
-    $deceased = Deceased::where('security_key', $request->key)->first();
-
-    if (!$deceased) {
-        return back()->with('error', 'Invalid Key');
+    {
+        return view('deceased.verify');
     }
 
-    return view('deceased.show', compact('deceased'));
-}
+    public function verify(Request $request)
+    {
+        $deceased = Deceased::where('security_key', $request->key)->first();
 
+        if (! $deceased) {
+            return back()->with('error', 'Invalid Key');
+        }
+
+        if ($request->user()->isClient()) {
+            $request->user()->verifiedDeceased()->syncWithoutDetaching([$deceased->id]);
+        }
+
+        return view('deceased.show', compact('deceased'));
+    }
 }

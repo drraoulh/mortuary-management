@@ -1,55 +1,74 @@
-<h1 style="text-align:center; color:darkblue;">Schedule Management</h1>
+@extends('layouts.app')
 
-<div style="text-align:center; margin-bottom:20px;">
-   <td>
+@section('title', 'Schedule')
 
-@foreach($schedules as $schedule)
+@section('content')
 
-<tr>
-    <td>{{ $schedule->id }}</td>
-    <td>{{ $schedule->pickup_date }}</td>
-    <td>{{ $schedule->pickup_time }}</td>
-    <td>{{ $schedule->status }}</td>
+<div class="container pb-4">
 
-    <td>
-        @if($schedule->status == 'pending')
-
-            <form action="{{ route('schedule.confirm', $schedule->id) }}"
-                  method="POST">
-
-                @csrf
-
-                <button class="btn btn-success">
-                    Confirm Schedule
-                </button>
-
-            </form>
-
-        @else
-
-            <span class="badge bg-success">
-                Confirmed
-            </span>
-
-        @endif
-    </td>
-</tr>
-
-@endforeach
-</td>
-</div>
-
-@if(session('success'))
-    <p style="color:green; text-align:center;">
-        {{ session('success') }}
-    </p>
-@endif
-
-@foreach($schedules as $schedule)
-    <div style="width:60%; margin:auto; background:#f5f5f5;
-                padding:15px; margin-bottom:15px; border-radius:10px;">
-        <p><strong>Pickup Date:</strong> {{ $schedule->pickup_date }}</p>
-        <p><strong>Pickup Time:</strong> {{ $schedule->pickup_time }}</p>
-        <p><strong>Notes:</strong> {{ $schedule->notes }}</p>
+    <div class="page-header d-flex flex-wrap justify-content-between align-items-end gap-3">
+        <div>
+            <span class="eyebrow"><i class="bi bi-calendar-event me-1"></i> Schedule</span>
+            <h1>Pickup schedule</h1>
+            <p>Planned releases and burials.</p>
+        </div>
+        <a href="{{ route('schedule.create') }}" class="btn btn-primary rounded-pill px-4">
+            <i class="bi bi-calendar-plus me-1"></i> New pickup
+        </a>
     </div>
-@endforeach
+
+    @include('partials.flash')
+
+    <div class="panel">
+        <div class="panel-body p-0">
+            @if($schedules->isEmpty())
+                <div class="empty-state"><i class="bi bi-calendar2"></i>No pickups scheduled yet.</div>
+            @else
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">Deceased</th>
+                                <th>Pickup</th>
+                                <th>Burial</th>
+                                <th>Destination</th>
+                                <th>Notes</th>
+                                <th>Status</th>
+                                <th class="pe-4"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($schedules as $schedule)
+                                <tr>
+                                    <td class="ps-4 fw-semibold">{{ $schedule->deceased->full_name ?? '—' }}</td>
+                                    <td class="small">
+                                        {{ $schedule->pickup_date }}
+                                        @if($schedule->pickup_time) &middot; {{ substr($schedule->pickup_time, 0, 5) }} @endif
+                                    </td>
+                                    <td class="small">{{ $schedule->burial_date ?? '—' }}</td>
+                                    <td class="small">{{ $schedule->location ?: '—' }}</td>
+                                    <td class="small text-muted">{{ $schedule->notes ?: '—' }}</td>
+                                    <td>
+                                        <span class="status-badge status-default status-{{ $schedule->status ?? 'pending' }}">
+                                            {{ $schedule->status ?? 'pending' }}
+                                        </span>
+                                    </td>
+                                    <td class="pe-4 text-end">
+                                        @if(($schedule->status ?? 'pending') === 'pending' && auth()->user()->canSupervise())
+                                            <form action="{{ route('schedule.confirm', $schedule->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                <button class="btn btn-sm btn-primary rounded-pill px-3">Approve</button>
+                                            </form>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+
+</div>
+@endsection

@@ -15,7 +15,7 @@
         }
 
         .overlay{
-            background:rgba(0,0,0,0.7);
+            background:linear-gradient(135deg, rgba(131,24,67,0.85), rgba(236,72,153,0.7));
             height:100vh;
             display:flex;
             justify-content:center;
@@ -32,8 +32,30 @@
         }
 
         h1{
-            color:#0d6efd;
+            color:#db2777;
             font-weight:bold;
+        }
+
+        .btn-pink{
+            background:#db2777;
+            border-color:#db2777;
+            color:#fff;
+        }
+
+        .btn-pink:hover{
+            background:#be185d;
+            border-color:#be185d;
+            color:#fff;
+        }
+
+        .btn-outline-pink{
+            border-color:#db2777;
+            color:#db2777;
+        }
+
+        .btn-outline-pink:hover{
+            background:#fce7f3;
+            color:#be185d;
         }
 
         p{
@@ -49,6 +71,10 @@
 <div class="overlay">
 
     <div class="card-home">
+
+        @if(session('status'))
+            <div class="alert alert-success">{{ session('status') }}</div>
+        @endif
 
         <h1>⚰ Mortuary Management System</h1>
 
@@ -68,15 +94,22 @@
 
         <div class="mt-4">
 
-            <a href="{{ route('login') }}"
-               class="btn btn-primary btn-lg">
-                Login
-            </a>
+            @auth
+                <a href="{{ route('dashboard') }}"
+                   class="btn btn-pink btn-lg">
+                    Go to my dashboard
+                </a>
+            @else
+                <a href="{{ route('login') }}"
+                   class="btn btn-pink btn-lg">
+                    Login
+                </a>
 
-            <a href="{{ route('register') }}"
-               class="btn btn-success btn-lg">
-                Register
-            </a>
+                <a href="{{ route('register') }}"
+                   class="btn btn-outline-pink btn-lg">
+                    Register
+                </a>
+            @endauth
 
         </div>
 

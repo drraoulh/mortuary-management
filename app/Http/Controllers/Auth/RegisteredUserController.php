@@ -36,11 +36,15 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
-        $user = User::create([
+        $user = new User([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
+
+        // Public sign-ups are families; an administrator promotes real staff from the Users page.
+        $user->role = User::ROLE_USER;
+        $user->save();
 
         event(new Registered($user));
 

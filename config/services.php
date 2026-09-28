@@ -55,5 +55,7 @@ return [
         'CAMPAY_PASSWORD'
     ),
 
+    'simulation' => env('CAMPAY_SIMULATION', false),
+
 ],
 ];

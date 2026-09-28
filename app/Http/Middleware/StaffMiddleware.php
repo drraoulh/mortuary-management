@@ -9,8 +9,7 @@ class StaffMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        if(auth()->user()->role != 'staff')
-        {
+        if (! $request->user() || ! $request->user()->isStaff()) {
             abort(403);
         }
 
